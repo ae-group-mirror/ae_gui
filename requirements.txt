@@ -1,0 +1,9 @@
+# dependencies of the ae.gui portion
+ae_base
+ae_files
+ae_paths
+ae_updater
+ae_dynamicod
+ae_i18n
+ae_core
+ae_console
