@@ -338,7 +338,7 @@ class TestFlowHelp:
             app_test.help_flow_display(dict(new_flow_id=flow_id))
             assert flow_id in app_test._next_help_id
 
-    def test_help_flow_display_returns_False(self, app_test):
+    def test_help_flow_display_returns_false(self, app_test):
         with patch('ae.gui.app.MainAppBase.help_flow_display', MagicMock(return_value=False)):
             app_test.framework_win = MagicMock()
             app_test.framework_win.children = []
@@ -350,7 +350,7 @@ class TestFlowHelp:
             assert len(mock_calls) == 1
             assert mock_calls[0] == call({'new_flow_id': 'tst_flow_id', 'event_kwargs': {'any_event_arg': True}})
 
-    def test_help_flow_display_returns_True(self, app_test):
+    def test_help_flow_display_returns_true(self, app_test):
         with patch('ae.gui.app.MainAppBase.help_flow_display', MagicMock(return_value=True)):
             app_test.framework_win = MagicMock()
             app_test.framework_win.children = []
@@ -624,15 +624,47 @@ class TestTourBase:
     def test_setup_explained_widget_id_matcher(self, app_tour):
         app_tour.page_ids = ['page_id1', 'page_id2', 'page_id3']
         app_tour.page_idx = 1
+
         app_tour.main_app.framework_win = win = MagicMock()
         win.container = win  # needed for widget_children()
-        win.children = []
-        app_tour.main_app.framework_root = MagicMock()
-        app_tour.main_app.framework_root.children = []
+
+        app_tour.main_app.framework_root = root = MagicMock()
+        root.children = []
+        root.container = root
+        win.children = [root]
+
         wid_id = 'wid_tst_id'
         app_tour.pages_explained_matchers = dict(page_id2=wid_id)
         wid = MagicMock()
-        app_tour.main_app.framework_root.ids = {wid_id: wid}
+        wid.id = wid_id
+        root.ids = {wid_id: wid}
+        root.children = [wid]
+
+        app_tour.setup_explained_widget()
+
+        assert app_tour.layout.explained_widget is wid
+
+    def test_setup_explained_widget_id_matcher_without_container(self, app_tour):
+        assert app_tour.layout.explained_widget is None
+
+        page_id = 'page_id2'
+        wid_id = 'wid_tst_id'
+        app_tour.pages_explained_matchers = {page_id: wid_id}
+
+        wid = MagicMock()
+        wid.id = wid_id
+
+        app_tour.main_app.framework_root = root = MagicMock()
+        delattr(root, 'container')
+        root.children = [wid]
+        root.ids = {wid_id: wid}
+
+        app_tour.main_app.framework_win = win = MagicMock()
+        delattr(win, 'container')
+        win.children = [root]
+
+        app_tour.page_ids = ['page_id1', page_id, 'page_id3']
+        app_tour.page_idx = 1
 
         app_tour.setup_explained_widget()
 

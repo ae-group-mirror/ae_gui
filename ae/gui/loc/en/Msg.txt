@@ -200,8 +200,13 @@ introduce in the following popup window
 your nickname to stop this tour from
 being displayed at app startup.""", },
 #==================================
+"cancel_ink": "cancel color",
+"confirm_ink": "confirm color",
 "create_ink": "create{'/add/register' if app.landscape else ''} color",
+"de": "Deutsch",
 "delete_ink": "delete color",
+"en": "English",
+"es": "Español",
 "flow_id_ink": "{'color of the ' if app.landscape else ''}focussed item",
 "flow_path_ink": "navigation{' action color' if app.landscape else ''}",
 "error_ink": "error color",

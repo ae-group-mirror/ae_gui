@@ -1538,6 +1538,13 @@ class TestOtherMainAppMethods:
         wid.visible = False
         assert not app.widget_visible(wid)
 
+    def test_width_spaces(self, restore_app_env):
+        app = ImplementationOfMainApp()
+
+        assert app.width_spaces(999)
+        assert isinstance(app.width_spaces(999), str)
+        assert all(_ == " " for _ in app.width_spaces(999))
+
     def test_win_pos_size_change(self, restore_app_env):
         app = ImplementationOfMainApp()
 

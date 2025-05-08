@@ -1,16 +1,16 @@
 <!-- THIS FILE IS EXCLUSIVELY MAINTAINED by the project ae.ae V0.3.95 -->
 <!-- THIS FILE IS EXCLUSIVELY MAINTAINED by the project aedev.tpl_namespace_root V0.3.14 -->
-# gui 0.3.109
+# gui 0.3.110
 
 [![GitLab develop](https://img.shields.io/gitlab/pipeline/ae-group/ae_gui/develop?logo=python)](
     https://gitlab.com/ae-group/ae_gui)
 [![LatestPyPIrelease](
-    https://img.shields.io/gitlab/pipeline/ae-group/ae_gui/release?logo=python)](
-    https://gitlab.com/ae-group/ae_gui/-/tree/release)
+    https://img.shields.io/gitlab/pipeline/ae-group/ae_gui/release0.3.109?logo=python)](
+    https://gitlab.com/ae-group/ae_gui/-/tree/release0.3.109)
 [![PyPIVersions](https://img.shields.io/pypi/v/ae_gui)](
     https://pypi.org/project/ae-gui/#history)
 
->ae_gui package 0.3.109.
+>ae_gui package 0.3.110.
 
 [![Coverage](https://ae-group.gitlab.io/ae_gui/coverage.svg)](
     https://ae-group.gitlab.io/ae_gui/coverage/index.html)

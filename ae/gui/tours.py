@@ -238,7 +238,7 @@ class TourBase:
                     match_str = ""
                 wid = main_app.find_widget(matcher)
                 if not wid and match_str:
-                    wid = getattr(main_app.framework_root, 'ids', {}).get(match_str)
+                    wid = main_app.widget_by_id(match_str)
                 if wid:
                     widgets.append(wid)
                 else:
