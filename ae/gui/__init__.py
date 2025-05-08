@@ -137,6 +137,8 @@ app state variables
 this module is providing/pre-defining the following application state variables:
 
     * :attr:`~ae.gui.app.MainAppBase.app_state_version`: the version of the app states implementation
+    * :attr:`~ae.gui.app.MainAppBase.cancel_ink`: cancel color, e.g. for cancellation buttons
+    * :attr:`~ae.gui.app.MainAppBase.confirm_ink`: confirm color, e.g. for confirmation buttons
     * :attr:`~ae.gui.app.MainAppBase.create_ink`: color to add/create new app data/items
     * :attr:`~ae.gui.app.MainAppBase.delete_ink`: color to delete app data/item
     * :attr:`~ae.gui.app.MainAppBase.error_ink`: color to display error messages/popups
@@ -704,7 +706,7 @@ from ae.i18n import register_package_translations                               
 from .utils import register_package_images, register_package_sounds
 
 
-__version__ = '0.3.109'
+__version__ = '0.3.110'
 
 
 register_package_images()

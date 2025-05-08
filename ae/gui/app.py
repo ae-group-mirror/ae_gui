@@ -57,6 +57,8 @@ class MainAppBase(ConsoleApp, ABC):
     # app states attributes
     app_state_version: int = 0                              #: version number of the app state variables in <config>.ini
 
+    cancel_ink: ColorOrInk = [0.99, 0.09, 0.09, 0.69]       #: rgba color for create/add/register actions
+    confirm_ink: ColorOrInk = [0.09, 0.99, 0.09, 0.69]      #: rgba color for create/add/register actions
     create_ink: ColorOrInk = [0.39, 0.99, 0.69, 0.69]       #: rgba color for create/add/register actions
     delete_ink: ColorOrInk = [0.99, 0.69, 0.69, 0.69]       #: rgba color for delete/remove actions
     error_ink: ColorOrInk = [0.99, 0.09, 0.39, 0.69]        #: rgba color for error actions
@@ -66,7 +68,7 @@ class MainAppBase(ConsoleApp, ABC):
     flow_path_ink: ColorOrInk = [0.99, 0.99, 0.39, 0.48]    #: rgba color for flow_path/drag&drop item placeholder
     font_size: float = 21.0                                 #: font size used toolbar and flow screens
     info_ink: ColorOrInk = [0.99, 0.99, 0.09, 0.69]         #: rgba color for info actions
-    lang_code: str = ""                                     #: an optional language code (e.g. 'es_ES' for Spanish)
+    lang_code: str = ""                                     #: optional language code (e.g. 'es' or 'es_ES' for Spanish)
     light_theme: bool = False                               #: True=light theme/background, False=dark theme
     read_ink: ColorOrInk = [0.09, 0.99, 0.69, 0.69]         #: rgba color for read actions
     selected_ink: ColorOrInk = [0.69, 0.99, 0.39, 0.18]     #: rgba color for selected list items
@@ -82,6 +84,8 @@ class MainAppBase(ConsoleApp, ABC):
     framework_app: Any = None                               #: app class instance of the used GUI framework
     framework_win: Any = None                               #: window instance of the used GUI framework
     framework_root: Any = None                              #: app root layout widget
+
+    space_width: float = 8.1                                #: width of a space char in pixels; depends on font size
 
     # optional app resources caches
     image_files: Optional[FilesRegister] = None             #: image/icon files
@@ -124,8 +128,9 @@ class MainAppBase(ConsoleApp, ABC):
     def _init_default_theme_cfg_vars(self):
         """ called from self._init_default_user_cfg_vars() to extend user config vars after/in self.__init__() """
         self.theme_specific_cfg_vars = {
-            'create_ink', 'delete_ink', 'error_ink', 'flow_id_ink', 'flow_path_ink', 'font_size', 'info_ink',
-            'light_theme', 'read_ink', 'selected_ink', 'unselected_ink', 'update_ink', 'warn_ink',
+            'cancel_ink', 'confirm_ink', 'create_ink', 'delete_ink', 'error_ink', 'flow_id_ink', 'flow_path_ink',
+            'font_size', 'info_ink', 'light_theme', 'read_ink', 'selected_ink', 'unselected_ink', 'update_ink',
+            'warn_ink',
         }
 
     def _init_default_user_cfg_vars(self):
@@ -482,10 +487,12 @@ class MainAppBase(ConsoleApp, ABC):
             return self.sound_files(sound_name)
         return None
 
-    def find_widget(self, match: Callable[[Any], bool]) -> Optional[Any]:
-        """ search the widget tree returning the first matching widget in reversed z-order (top-/foremost first).
+    def find_widget(self, match: Callable[[Any], bool], root_widget: Optional[Any] = None) -> Optional[Any]:
+        """ bottom-up-search the widget tree returning the first matching widget in reversed z-order (foremost first).
 
         :param match:           callable called with the widget as an argument, returning True if the widget matches.
+        :param root_widget:     optional root widget to start searching from.
+                                if None, then the root of the widget tree is used.
         :return:                the first found widget in reversed z-order (top-most widget first).
         """
         def child_wid(children):
@@ -498,7 +505,7 @@ class MainAppBase(ConsoleApp, ABC):
                     return widget
             return None
 
-        return child_wid(self.widget_children(self.framework_win))
+        return child_wid(self.widget_children(root_widget or self.framework_win))
 
     def flow_path_action(self, flow_path: Optional[list[str]] = None, path_index: int = -1) -> str:
         """ determine the action of the last (newest) entry in the flow_path.
@@ -857,6 +864,10 @@ class MainAppBase(ConsoleApp, ABC):
             val = self.get_variable('unselected_item_ink', APP_STATE_SECTION_NAME, self.unselected_ink)
             self.change_app_state('unselected_ink', val, send_event=False, old_name='unselected_item_ink')
 
+        elif from_version == 5:  # until V6 release/for V5: not in app.app_states, but available as main_app attributes
+            self.change_app_state('cancel_ink', self.cancel_ink, send_event=False, old_name=UNSET)
+            self.change_app_state('confirm_ink', self.confirm_ink, send_event=False, old_name=UNSET)
+
     def on_app_tour_toggle(self, _flow_key: str, _event_kwargs: EventKwargsType) -> bool:
         """ event handler for to start/stop an app onboarding tour.
 
@@ -922,6 +933,10 @@ class MainAppBase(ConsoleApp, ABC):
         if self.help_layout and self.help_widget(self.displayed_help_id, {}) is self.help_activator:
             self.help_display('', {})
         return True
+
+    def on_font_size(self):
+        """ app state change event handler to synchronize the :attr:`MainAppBase.space_width` attribute. """
+        self.space_width = self.font_size / 2.25
 
     def on_key_press(self, modifiers: str, key_code: str) -> bool:
         """ check key press event to be handled and processed as command/action.
@@ -1373,7 +1388,7 @@ class MainAppBase(ConsoleApp, ABC):
         return cfg_parser.getint(APP_STATE_SECTION_NAME, APP_STATE_VERSION_VAR_NAME, fallback=0)
 
     def widget_by_app_state_name(self, app_state_name: str) -> Optional[Any]:
-        """ determine the first (top-most) widget having the passed app state name (app_state_name).
+        """ determine the first (top-most on z-axis) widget having the passed app state name (app_state_name).
 
         :param app_state_name:  app state name of the widget's `app_state_name` attribute.
         :return:                widget that has an ` app_state_name ` attribute with the passed app state name
@@ -1381,17 +1396,27 @@ class MainAppBase(ConsoleApp, ABC):
         """
         return self.widget_by_attribute('app_state_name', app_state_name)
 
-    def widget_by_attribute(self, att_name: str, att_value: str) -> Optional[Any]:
-        """ determine the first (top-most) widget having the passed attribute name and value.
+    def widget_by_attribute(self, att_name: str, att_value: str, root_widget: Optional[Any] = None) -> Optional[Any]:
+        """ determine the first (top-most on z-axis) widget having the passed attribute name and value.
 
         :param att_name:        attribute name of the searched widget.
         :param att_value:       attribute value of the searched widget.
+        :param root_widget:     optional root widget to start the search from, else search from the widget tree root.
         :return:                widget that has the specified attribute with the specified value or None if not found.
         """
-        return self.find_widget(lambda widget: getattr(widget, att_name, None) == att_value)
+        return self.find_widget(lambda widget: getattr(widget, att_name, None) == att_value, root_widget=root_widget)
+
+    def widget_by_id(self, widget_id: str, root_widget: Optional[Any] = None) -> Optional[Any]:
+        """ determine the first (top-most on z-axis) widget identified by the passed widget_id.
+
+        :param widget_id:       id of the widget to search for.
+        :param root_widget:     optional root widget to start the search from, else search from the widget tree root.
+        :return:
+        """
+        return self.widget_by_attribute('id', widget_id, root_widget=root_widget)
 
     def widget_by_flow_id(self, flow_id: str) -> Optional[Any]:
-        """ determine the first (top-most) widget having the passed flow_id.
+        """ determine the first (top-most on z-axis) widget having the passed flow_id.
 
         :param flow_id:         flow id value of the searched widget's `tap_flow_id`/`focus_flow_id` attribute.
         :return:                widget that has a `tap_flow_id`/`focus_flow_id` attribute with the value of the passed
@@ -1400,7 +1425,7 @@ class MainAppBase(ConsoleApp, ABC):
         return self.widget_by_attribute('tap_flow_id', flow_id) or self.widget_by_attribute('focus_flow_id', flow_id)
 
     def widget_by_page_id(self, page_id: str) -> Optional[Any]:
-        """ determine the first (top-most) widget having the passed tour page id.
+        """ determine the first (top-most on z-axis) widget having the passed tour page id.
 
         :param page_id:         widgets tour page id from `tap_flow_id`/`focus_flow_id`/`app_state_name` attribute.
         :return:                widget that has a `tap_flow_id`/`focus_flow_id`/`app_state_name` attribute with the
@@ -1419,13 +1444,13 @@ class MainAppBase(ConsoleApp, ABC):
         return [chi for chi in getattr(wid, 'container', wid).children if not only_visible or wid_visible(chi)]
 
     @staticmethod
-    def widget_pos(wid) -> tuple[float, float]:
+    def widget_pos(wid: Any) -> tuple[float, float]:
         """ return the absolute window x and y position of the passed widget.
 
         :param wid:             widget to determine the position of.
         :return:                tuple of x and y screen/window coordinate.
         """
-        return wid.x, wid.y
+        return getattr(wid, 'x', 0.0), getattr(wid, 'y', 0.0)  # use getattr because None/framework_win doesn't have x/y
 
     def widget_tourable_children_page_ids(self, parent_widget: Any) -> list:
         """ determine all visible and tourable children widgets of the passed parent and its child container widgets.
@@ -1463,13 +1488,13 @@ class MainAppBase(ConsoleApp, ABC):
         return min_x, min_y, max_x - min_x, max_y - min_y
 
     @staticmethod
-    def widget_size(wid) -> tuple[float, float]:
+    def widget_size(wid: Any) -> tuple[float, float]:
         """ return the size (width and height) in pixels of the passed widget.
 
         :param wid:             widget to determine the size of.
         :return:                tuple of width and height in pixels.
         """
-        return wid.width, wid.height
+        return getattr(wid, 'width', 0.0), getattr(wid, 'height', 0.0)      # wid==None does not have width/height
 
     @staticmethod
     def widget_visible(wid: Any) -> bool:
@@ -1482,6 +1507,10 @@ class MainAppBase(ConsoleApp, ABC):
         return bool(wid.width and wid.height and
                     getattr(wid, 'visible', True) in (True, None) and   # containers/BoxLayout.visible is None ?!?!?
                     getattr(wid, 'opacity', True))
+
+    def width_spaces(self, width: int) -> str:
+        """ return the number of spaces that result in the specified width by using the app font_size. """
+        return " " * round(width / self.space_width)
 
     def win_pos_size_change(self, *win_pos_size):
         """ screen resize handler called on window resize or when the app will exit/stop via closed event.

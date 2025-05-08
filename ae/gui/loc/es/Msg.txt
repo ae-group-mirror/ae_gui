@@ -72,6 +72,8 @@ de color.
 aquí puedes cambiar el
 color usado para
 [b]{dict(
+      cancel_ink='cancelar',
+      confirm_ink='confirmar',
       create_ink='crear',
       delete_ink='borrar',
       error_ink='errores',
@@ -224,16 +226,20 @@ introduzca su nombre de usuario en la siguiente
 ventana emergente/popup para detener este tour
 recorrido de aparecer en el inicio de la app.""", },
 #==================================
+"cancel_ink": "color de cancelar",
+"confirm_ink": "color de confirmar",
 "create_ink": "color de crear{'/añadir/registrar' if app.landscape else ''}",
 "delete_ink": "color de borrar",
 "flow_id_ink": "{'color del ' if app.landscape else ''}registro seleccionado",
 "flow_path_ink": "{'color de los botónes de ' if app.landscape else ''}navigación de listas",
 "error_ink": "color de error",
+"help": "ayuda",
 "info_ink": "color de info",
 "read_ink": "color de leer",
 "selected_ink": "{'color de los ' if app.landscape else ''}registros marcados",
 "start app onboarding tour": "arrancar tour de introducción",
 "stop app onboarding tour": "terminar tour de introducción",
+"tour": "gira de app",
 "unselected_ink": "{'color de los ' if app.landscape else ''}registros desmarcados",
 "update_ink": "color de editar",
 "warn_ink": "color de avisar",

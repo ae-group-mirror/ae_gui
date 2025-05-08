@@ -72,6 +72,8 @@ farben-editor anzeigen.
 hier kann die farbe
 geändert werden, welche
 für [b]{dict(
+      cancel_ink='das abbrechen',
+      confirm_ink='das bestätigen',
       create_ink='das angelegen',
       delete_ink='das löschen',
       error_ink='fehler',
@@ -229,16 +231,20 @@ gib im nachfolgenden popup-fenster deinen
 ruf-/spitznamen ein um diese tour nicht
 mehr beim app start anzuzeigen.""", },
 #==================================
+"cancel_ink": "abbruch farbe",
+"delete_ink": "bestätigung farbe",
 "create_ink": "anlegen{'/hinzufügen/registrieren' if app.landscape else ''} farbe",
 "delete_ink": "löschen farbe",
 "flow_id_ink": "{'farbe des fokussierten' if app.landscape else 'fokussierter'} eintrag",
 "flow_path_ink": "{'farbe der ' if app.landscape else ''}listen-navigation",
 "error_ink": "fehler farbe",
+"help": "hilfe",
 "info_ink": "info farbe",
 "read_ink": "lesen farbe",
 "selected_ink": "{'farbe der ausgewählten' if app.landscape else 'ausgewählte'} einträge",
 "start app onboarding tour": "einweisungstour starten",
 "stop app onboarding tour": "einweisungstour stoppen",
+"tour": "app tour",
 "unselected_ink": "{'farbe der abgewählten' if app.landscape else 'abgewählte'} einträge",
 "update_ink": "bearbeiten farbe",
 "warn_ink": "warnung farbe",
