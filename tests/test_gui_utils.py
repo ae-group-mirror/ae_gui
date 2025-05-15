@@ -6,8 +6,8 @@ from ae.i18n import get_text
 
 from ae.gui.utils import (
     APP_STATE_HELP_ID_PREFIX, FLOW_HELP_ID_PREFIX,
-    TOUR_PAGE_HELP_ID_PREFIX, anchor_layout_x, anchor_layout_y, anchor_points, anchor_spec, ellipse_polar_radius,
-    ensure_tap_kwargs_refs,
+    TOUR_PAGE_HELP_ID_PREFIX, anchor_layout_x, anchor_layout_y, anchor_points, anchor_spec,
+    brighten_color, complementary_color, darken_color, ellipse_polar_radius, ensure_tap_kwargs_refs,
     flow_action, flow_class_name, flow_change_confirmation_event_name, flow_key, flow_object, flow_path_id,
     flow_path_strip, flow_popup_class_name, help_id_tour_class, help_sub_id, id_of_flow, id_of_flow_help,
     id_of_state_help, id_of_tour_help,
@@ -217,6 +217,103 @@ class TestAppHelperFunctions:
 
         assert 'extra_kwarg' in update_tap_kwargs(wid, extra_kwarg='extra_tst')
         assert update_tap_kwargs(wid)['extra_kwarg'] == 'extra_tst'
+
+
+class TestColorHelperFunctions:
+    def test_brighten_color(self):
+        assert brighten_color([1, 1, 1]) == [1, 1, 1]
+        assert brighten_color([1, 1, 1], factor=-.3) == [1, 1, 1]
+        assert brighten_color([.6, .6, .6]) == [.78, .78, .78]
+        assert brighten_color([.6, .6, .6], factor=-0.3) == [.72, .72, .72]
+        assert brighten_color([0, 0, 0]) == [0.0, 0.0, 0.0]
+        assert brighten_color([0, 0, 0], factor=-.3) == [0.3, 0.3, 0.3]
+
+        assert brighten_color([0, 0, 0], factor=0) == [0.0, 0., 0.]
+        assert brighten_color([0, 0, 0], factor=.6) == [0.0, 0.0, 0.0]
+        assert brighten_color([0, 0, 0], factor=-.6) == [.6, 0.6, 0.6]
+        assert brighten_color([0, 0, 0], factor=1) == [.0, 0, 0]
+        assert brighten_color([0, 0, 0], factor=-1) == [1, 1, 1]
+
+    def test_brighten_color_ink(self):
+        assert brighten_color([1, 1, 1, 1]) == [1, 1, 1, 1]
+        assert brighten_color([1, 1, 1, 1], factor=-.3) == [1, 1, 1, 1]
+        assert brighten_color([.6, .6, .6, 0]) == [0.78, 0.78, 0.78, 0]
+        assert brighten_color([.6, .6, .6, 0], factor=-.3) == [.72, .72, .72, 0]
+        assert brighten_color([0, 0, 0, 1]) == [0.0, 0.0, 0.0, 1]
+        assert brighten_color([0, 0, 0, 1], factor=-.3) == [0.3, 0.3, 0.3, 1]
+
+        assert brighten_color([0, 0, 0, 0], factor=0) == [.0, 0, 0, 0]
+        assert brighten_color([0, 0, 0, 0], factor=-0) == [0, 0, 0, 0]
+        assert brighten_color([0, 0, 0, 0], factor=.6) == [0, 0, 0, 0]
+        assert brighten_color([0, 0, 0, 0], factor=-.6) == [.6, .6, .6, 0]
+        assert brighten_color([0, 0, 0, 1], factor=1) == [0.0, 0, 0, 1]
+        assert brighten_color([0, 0, 0, 1], factor=-1) == [1., 1, 1, 1]
+
+    def test_brighten_color_throws(self):
+        with pytest.raises(TypeError):
+            brighten_color()
+
+    def test_complementary_color(self):
+        assert complementary_color([0, 0, 0]) == [0, 0, 0]
+        assert complementary_color([0, 0, 0], delta_h=0) == [1, 1, 1]
+        assert complementary_color([1, 0, 0]) == [0, 1, 1]
+        assert complementary_color([1, 0, 0], delta_h=0) == [0, 1, 1]
+        assert complementary_color([0, 1, 0]) == [1, 0, 1]
+        assert complementary_color([0, 1, 0], delta_h=0) == [1, 0, 1]
+        assert complementary_color([0, 0, 1]) == [1, 1, 0]
+        assert complementary_color([0, 0, 1], delta_h=0) == [1, 1, 0]
+
+        assert complementary_color([1., .6, .3]) == [0.30000000000000004, 0.6999999999999993, 1.0]
+        assert complementary_color([1., .6, .3], delta_h=0) == [.0, .4, .7]
+        assert complementary_color([.48, .5, .51]) == [0.51, 0.49, 0.48]
+        assert complementary_color([.48, .5, .51], delta_h=0) == [0.52, 0.5, 0.49]
+        assert complementary_color([.5, .5, .5]) == [0.5, 0.5, 0.5]
+        assert complementary_color([.5, .5, .5], delta_h=0) == [.5, .5, .5]
+        assert complementary_color([.3, 1., .6]) == [1.0, 0.30000000000000004, 0.6999999999999993]
+        assert complementary_color([.3, 1., .6], delta_h=0) == [.7, 0., .4]
+        assert complementary_color([.1, .3, .9]) == [0.9, 0.7000000000000001, 0.09999999999999995]
+        assert complementary_color([.1, .3, .9], delta_h=0) == [0.9, 0.7, 0.09999999999999998]
+        assert complementary_color([1, 1, 1]) == [1, 1, 1]
+        assert complementary_color([1, 1, 1], delta_h=0) == [0, 0, 0]
+
+        for delta_h in range(0, 360, 2):  # some more test deltas also to cover all 6 h_i-cases in color_from_hsv()
+            assert complementary_color([.5, .5, .5], delta_h=delta_h) == [0.5, 0.5, 0.5]
+
+    def test_complementary_color_ink(self):
+        assert complementary_color([1, 0, 0, 1]) == [0, 1, 1, 1]
+
+        assert complementary_color([1, 1, 1, 1]) == [1, 1, 1, 1]
+        assert complementary_color([1, 1, 1, 1], delta_h=0) == [.0, .0, .0, 1]
+        assert complementary_color([.6, .6, .6, 0]) == [0.6, 0.6, 0.6, 0]
+        assert complementary_color([.6, .6, .6, 0], delta_h=0) == [.4, .4, .4, 0]
+        assert complementary_color([0, 0, 0, 1]) == [0, 0, 0, 1]
+        assert complementary_color([0, 0, 0, 1], delta_h=0) == [1, 1, 1, 1]
+
+    def test_complementary_color_throws(self):
+        with pytest.raises(TypeError):
+            complementary_color()
+
+    def test_darken_color(self):
+        assert darken_color([1, 1, 1]) == [.7, .7, .7]
+        assert darken_color([.6, .6, .6]) == [.42, .42, .42]
+        assert darken_color([0, 0, 0]) == [0, 0, 0]
+
+        assert darken_color([1, 1, 1], factor=0) == [1.0, 1., 1.]
+        assert darken_color([1, 1, 1], factor=.6) == [.4, .4, .4]
+        assert darken_color([1, 1, 1], factor=1) == [.00, .0, .0]
+
+    def test_darken_color_ink(self):
+        assert darken_color([1, 1, 1, 1]) == [.7, .7, .7, 1]
+        assert darken_color([.6, .6, .6, 0]) == [.42, .42, .42, 0]
+        assert darken_color([0, 0, 0, 1]) == [0, 0, 0, 1]
+
+        assert darken_color([1, 1, 1, 1], factor=0) == [1.0, 1., 1., 1]
+        assert darken_color([1, 1, 1, 1], factor=.6) == [.4, .4, .4, 1]
+        assert darken_color([1, 1, 1, 0], factor=1) == [.00, .0, .0, 0]
+
+    def test_darken_color_throws(self):
+        with pytest.raises(TypeError):
+            darken_color()
 
 
 class TestTourHelperFunctions:

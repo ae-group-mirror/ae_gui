@@ -19,8 +19,12 @@ APP_STATE_VERSION_VAR_NAME = 'app_state_version'  #: config variable name to sto
 MIN_FONT_SIZE = 15.0                            #: minimum (see :attr:`~ae.kivy.apps.FrameworkApp.min_font_size`) and
 MAX_FONT_SIZE = 99.0                            #: .. maximum font size in pixels
 
-COLOR_BLACK = [0.009, 0.006, 0.003, 1.0]        #: != 0/1 to differentiate from framework pure black/white colors
-COLOR_WHITE = [0.999, 0.996, 0.993, 1.0]
+# inks for the non-colors black, grey and white (#: != 0/1 to differentiate from framework pure black/white colors)
+COLOR_BLACK = [0.009, 0.006, 0.003, 1.0]        #: black ink
+COLOR_CARK_GREY = [0.309, 0.306, 0.303, 1.0]    #: dark grey ink
+COLOR_GREY = [0.509, 0.506, 0.503, 1.0]         #: grey ink
+COLOR_LIGHT_GREY = [0.699, 0.696, 0.693, 1.0]   #: light grey ink
+COLOR_WHITE = [0.999, 0.996, 0.993, 1.0]        #: white ink
 
 THEME_DARK_BACKGROUND_COLOR = COLOR_BLACK       #: dark theme background color in rgba(0.0 ... 1.0)
 THEME_DARK_FONT_COLOR = COLOR_WHITE             #: dark theme font color in rgba(0.0 ... 1.0)
@@ -164,6 +168,122 @@ def anchor_spec(wid_x: float, wid_y: float, wid_width: float, wid_height: float,
         anchor_y = wid_y + (0 if anchor_dir_y == 'd' else wid_height)
 
     return anchor_x, anchor_y, anchor_dir
+
+
+def brighten_color(color_or_ink: ColorOrInk, factor: float = 0.3) -> ColorOrInk:
+    """ brightens the specified color/ink without changing an optionally passed alpha/occupancy value.
+
+    :param color_or_ink:    the color or ink to be brightened.
+    :param factor:          the factor to brighten the color or ink by. its value must range between -1 and 1,
+                            0 results in no brightening at all (original color), positive values are using the
+                            more complex HSV algorithm, and negative values the efficient RGB brightening algorithm.
+                            so +1 returns the brightest value of the specified color, whereas -1 results as white.
+    :return:                the brightened color or ink, as the same type as the input.
+    """
+    if factor > 0:
+        hsv = color_to_hsv(color_or_ink)
+        hsv = hsv[0], hsv[1] * (1.0 - factor), min(1.0, hsv[2] * (1.0 + factor))
+        rgb = list(color_from_hsv(hsv))
+    else:
+        rgb = list(min(1.0, _ + (1.0 - _) * -factor) for _ in color_or_ink[:3])
+    return rgb + list(color_or_ink[3:])
+
+
+def color_from_hsv(hsv: tuple[float, float, float]) -> ColorRGB:
+    """ convert HSV-color (H: 0-360, S: 0-1, V: 0-1) into its corresponding RGB color.
+
+    :param hsv:             HSV color tuple to convert into its corresponding RGB value.
+    :return:                the corresponding RGB color, with normalized color channel values between 0 and 1.
+    """
+    h, s, v = hsv
+    h_i = int(h / 60)
+    f = (h / 60) - h_i
+    p = v * (1 - s)
+    q = v * (1 - f * s)
+    t = v * (1 - (1 - f) * s)
+
+    if h_i == 0:
+        r, g, b = v, t, p
+    elif h_i == 1:
+        r, g, b = q, v, p
+    elif h_i == 2:
+        r, g, b = p, v, t
+    elif h_i == 3:
+        r, g, b = p, q, v
+    elif h_i == 4:
+        r, g, b = t, p, v
+    else:  # if h_i == 5:
+        r, g, b = v, p, q
+
+    return r, g, b
+
+
+def color_to_hsv(color_or_ink: ColorOrInk) -> tuple[float, float, float]:
+    """ convert color/ink to its HSV values.
+
+    :param color_or_ink:    the color or ink to convert into its hsv value.
+    :return:                the HSV values (H: 0-360, S: 0-1, V: 0-1) of the specified color or ink.
+    """
+    r, g, b, *_a = color_or_ink
+    max_wert: float = max(r, g, b)
+    delta = max_wert - min(r, g, b)
+
+    if delta == 0:
+        h: float = 0
+    elif max_wert == r:
+        h = 60 * (((g - b) / delta) % 6)
+    elif max_wert == g:
+        h = 60 * (((b - r) / delta) + 2)
+    else:  # if max_wert == b:
+        h = 60 * (((r - g) / delta) + 4)
+
+    return h, delta / max_wert if max_wert else 0, max_wert
+
+
+def complementary_color(color_or_ink: ColorOrInk, delta_h: float = 180.0) -> ColorOrInk:
+    """ determine the complementary color or ink without changing an optionally passed alpha/occupancy value.
+
+    :param color_or_ink:    the color or ink to convert into its complementary value.
+    :param delta_h:         specify a value between -360 and +360 to get a complementary color. specify a
+                            zero value get the opposite color with the more efficient RGB algorithm.
+                            any other value will use the HSV algorithm, which adds this value as a delta angle in
+                            the HSV color circle. some harmonic delta angles are:
+                                * 30: analogous colors
+                                * 90, 180 and 270: tetradic colors 2, 3 and 4
+                                * 120 and 240: triadic color 2 and 3
+                                * 180: opposite color
+
+    :return:                the complementary color or ink, as the same type as the input. note that the HSV algorithm
+                            does not change any monochrom/greyscale colors; pass a zero value to the delta_h parameter
+                            in order to get an "opposite"-like color from a grey-scale color (see the unit tests on how
+                            the RGB algorithm does behave in relation to the HSV algorithm).
+    """
+    if delta_h:
+        hsv = color_to_hsv(color_or_ink)
+        hsv = (hsv[0] + delta_h + 360) % 360, hsv[1], hsv[2]
+        rgb = list(color_from_hsv(hsv))
+    else:
+        rgb = list(1.0 - _ for _ in color_or_ink[:3])
+    return rgb + list(color_or_ink[3:])
+
+
+def darken_color(color_or_ink: ColorOrInk, factor: float = 0.3) -> ColorOrInk:
+    """ darkens the specified color/ink without changing an optionally passed alpha/occupancy value.
+
+    :param color_or_ink:    the color or ink to be darkened.
+    :param factor:          the factor to darken the color or ink by. its value must range between -1 and 1,
+                            where 0 results in no darkening (original color), positive values are using the
+                            more complex HSV algorithm, and negative values the efficient RGB darkening algorithm.
+                            so +1 returns the darkest value of the specified color, whereas -1 results in a black color.
+    :return:                the darkened color or ink, as the same type as the input.
+    """
+    if factor > 0:
+        hsv = color_to_hsv(color_or_ink)
+        hsv = hsv[0], min(1.0, hsv[1] * (1.0 + factor)), hsv[2] * (1.0 - factor)
+        rgb = list(color_from_hsv(hsv))
+    else:
+        rgb = list(_ * (1.0 + factor) for _ in color_or_ink[:3])
+    return rgb + list(color_or_ink[3:])
 
 
 def ellipse_polar_radius(ell_a: float, ell_b: float, radian: float) -> float:
