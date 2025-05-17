@@ -5,15 +5,13 @@ from unittest.mock import MagicMock
 from ae.i18n import get_text
 
 from ae.gui.utils import (
-    APP_STATE_HELP_ID_PREFIX, FLOW_HELP_ID_PREFIX,
-    TOUR_PAGE_HELP_ID_PREFIX, anchor_layout_x, anchor_layout_y, anchor_points, anchor_spec,
+    APP_STATE_HELP_ID_PREFIX, FLOW_HELP_ID_PREFIX, TOUR_PAGE_HELP_ID_PREFIX,
+    anchor_layout_x, anchor_layout_y, anchor_points, anchor_spec,
     brighten_color, complementary_color, darken_color, ellipse_polar_radius, ensure_tap_kwargs_refs,
     flow_action, flow_class_name, flow_change_confirmation_event_name, flow_key, flow_object, flow_path_id,
     flow_path_strip, flow_popup_class_name, help_id_tour_class, help_sub_id, id_of_flow, id_of_flow_help,
-    id_of_state_help, id_of_tour_help,
-    merge_popups_to_close,
-    popup_event_kwargs,
-    register_package_images, register_package_sounds, replace_flow_action, update_tap_kwargs)
+    id_of_state_help, id_of_tour_help, merge_popups_to_close, mix_colors, popup_event_kwargs,
+    register_package_images, register_package_sounds, relief_colors, replace_flow_action, update_tap_kwargs)
 
 from tst_constants import *
 
@@ -314,6 +312,46 @@ class TestColorHelperFunctions:
     def test_darken_color_throws(self):
         with pytest.raises(TypeError):
             darken_color()
+
+    def test_mix_colors(self):
+        assert mix_colors() == []
+        assert mix_colors([0, 0, 0, 0], [1, 1, 1, 1]) == [0.5, 0.5, 0.5, 0.5]
+        assert mix_colors([0, .3, .6, .9], [.3, .6, .9, 1]) == [0.15, 0.44999999999999996, 0.75, 0.95]
+
+    def test_relief_colors_default_args(self):
+        assert relief_colors() == (
+            [0.8144, 0.81248, 0.81056], [0.3563, 0.35357, 0.35084])
+        assert relief_colors(top_factor=0.6, bottom_factor=0.3) == (
+            [0.8144, 0.81248, 0.81056], [0.3563, 0.35357, 0.35084])
+        assert relief_colors(top_factor=-0.6, bottom_factor=-0.3) == (
+            [0.8036, 0.8024, 0.8011999999999999], [0.3563, 0.35419999999999996, 0.35209999999999997])
+
+        assert relief_colors(color_or_ink=[0.5, 0.5, 0.5]) == (
+            [0.8, 0.8, 0.8], [0.35, 0.35, 0.35])
+        assert relief_colors(color_or_ink=[0.5, 0.5, 0.5, 0.1], top_factor=0.6, bottom_factor=0.3) == (
+            [0.8, 0.8, 0.8], [0.35, 0.35, 0.35])
+        assert relief_colors(color_or_ink=[0.5, 0.5, 0.5, 0.1], top_factor=-0.6, bottom_factor=-0.3) == (
+            [0.8, 0.8, 0.8], [0.35, 0.35, 0.35])
+
+        assert relief_colors(color_or_ink=[1.0, 0.5, 0.5]) == (
+            [1.0, 0.8, 0.8], [0.7, 0.24499999999999997, 0.24499999999999997])
+        assert relief_colors(color_or_ink=[1.0, 0.5, 0.5], top_factor=-0.6, bottom_factor=-0.3) == (
+            [1.0, 0.8, 0.8], [0.7, 0.35, 0.35])
+
+        assert relief_colors(top_factor=0.3, bottom_factor=0.6) == (
+            [0.6617000000000001, 0.6589700000000001, 0.65624], [0.2036, 0.20168, 0.19976])
+        assert relief_colors(top_factor=-.3, bottom_factor=-.6) == (
+            [0.6563, 0.6542, 0.6521], [0.2036, 0.20240000000000002, 0.20120000000000002])
+
+        assert relief_colors(top_factor=0.1, bottom_factor=0.9, sunken=True) == (
+            [0.4581, 0.45513000000000003, 0.45216], [0.9671, 0.96653, 0.9659599999999999])
+        assert relief_colors(top_factor=-.1, bottom_factor=-.9, sunken=True) == (
+            [0.4581, 0.4554, 0.4527], [0.9509000000000001, 0.9506, 0.9503])
+
+    def test_relief_colors_auto_hide(self):
+        assert relief_colors(color_or_ink=[0.5, 0.5, 0.5, 0.1]) == ([0.8, 0.8, 0.8], [0.35, 0.35, 0.35])
+        assert relief_colors(color_or_ink=[0.5, 0.5, 0.5, 0.0]) == ()
+        assert relief_colors(color_or_ink=[0.5, 0.5, 0.5, 0]) == ()
 
 
 class TestTourHelperFunctions:

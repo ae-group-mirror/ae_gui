@@ -79,6 +79,7 @@ für [b]{dict(
       error_ink='fehler',
       flow_id_ink='fokussiertes',
       flow_path_ink='das navigieren',
+      help_ink='das hilfe-system',
       info_ink='infos',
       read_ink='das lesen',
       selected_ink='ausgewähltes',

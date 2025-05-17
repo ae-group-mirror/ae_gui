@@ -147,6 +147,7 @@ this module is providing/pre-defining the following application state variables:
     * :attr:`~ae.gui.app.MainAppBase.flow_path`: stack of entered/opened app flows
     * :attr:`~ae.gui.app.MainAppBase.flow_path_ink`: color to display the current flow path
     * :attr:`~ae.gui.app.MainAppBase.font_size`: size of the main app font (also used to calculate the grid row height)
+    * :attr:`~ae.gui.app.MainAppBase.help_ink`: color to mark widgets with context-sensitive help
     * :attr:`~ae.gui.app.MainAppBase.info_ink`: color to display info messages
     * :attr:`~ae.gui.app.MainAppBase.lang_code`: id of the selected user language
     * :attr:`~ae.gui.app.MainAppBase.light_theme`: light/dark background (for app themes)
@@ -706,7 +707,7 @@ from ae.i18n import register_package_translations                               
 from .utils import register_package_images, register_package_sounds
 
 
-__version__ = '0.3.111'
+__version__ = '0.3.112'
 
 
 register_package_images()

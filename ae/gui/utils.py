@@ -19,12 +19,15 @@ APP_STATE_VERSION_VAR_NAME = 'app_state_version'  #: config variable name to sto
 MIN_FONT_SIZE = 15.0                            #: minimum (see :attr:`~ae.kivy.apps.FrameworkApp.min_font_size`) and
 MAX_FONT_SIZE = 99.0                            #: .. maximum font size in pixels
 
-# inks for the non-colors black, grey and white (#: != 0/1 to differentiate from framework pure black/white colors)
+# inks for the non-colors black, grey and white (!= 0/1 to differentiate from framework pure black/white colors)
 COLOR_BLACK = [0.009, 0.006, 0.003, 1.0]        #: black ink
 COLOR_CARK_GREY = [0.309, 0.306, 0.303, 1.0]    #: dark grey ink
 COLOR_GREY = [0.509, 0.506, 0.503, 1.0]         #: grey ink
 COLOR_LIGHT_GREY = [0.699, 0.696, 0.693, 1.0]   #: light grey ink
 COLOR_WHITE = [0.999, 0.996, 0.993, 1.0]        #: white ink
+
+RELIEF_ANGLE_BEG = 69                           #: beginning angle for ellipse drawings via :func:`relief_colors`
+RELIEF_ANGLE_END = 249                          #: ending angle for ellipse drawings via :func:`relief_colors`
 
 THEME_DARK_BACKGROUND_COLOR = COLOR_BLACK       #: dark theme background color in rgba(0.0 ... 1.0)
 THEME_DARK_FONT_COLOR = COLOR_WHITE             #: dark theme font color in rgba(0.0 ... 1.0)
@@ -67,6 +70,8 @@ ExplainedMatcherType = Union[Callable[[Any], bool], str]            #: single ex
 HelpVarsType = dict[str, Any]                                       #: help context variables for help text rendering
 
 PopupsToCloseType = Union[int, tuple]                               #: popups to close on button-press/flow-change
+
+ReliefColors = Union[tuple[ColorRGB, ColorRGB], tuple]              #: tuple of top/bottom relief colors or empty tuple
 
 
 def anchor_layout_x(anchor_spe: AnchorSpecType, layout_width: float, win_width: float) -> float:
@@ -538,6 +543,15 @@ def merge_popups_to_close(tap_kwargs: EventKwargsType, add_kwargs: EventKwargsTy
     return popups_to_close
 
 
+def mix_colors(*colors: ColorOrInk) -> ColorOrInk:
+    """ mix colors together.
+
+    :param colors:              colors or inks to mix together.
+    :return:                    mixed color or ink.
+    """
+    return [sum(_) / len(_) for _ in zip(*colors)]
+
+
 def popup_event_kwargs(message: str, title: str,
                        confirm_flow_id: Optional[str] = None, confirm_kwargs: Optional[EventKwargsType] = None,
                        confirm_text: Optional[str] = None, **popup_kwargs) -> EventKwargsType:
@@ -593,6 +607,35 @@ def register_package_sounds():
     package_path = os_path_dirname(norm_path(stack_var('__file__', '')))
     search_path = os_path_join(package_path, 'snd/**')
     PORTIONS_SOUNDS.add_paths(search_path)
+
+
+def relief_colors(color_or_ink: Optional[ColorOrInk] = None, top_factor: float = 0.6, bottom_factor: float = 0.3,
+                  sunken: bool = False) -> ReliefColors:
+    """ calculate the top-left and bottom-right colors used for square/ellipse relief effects.
+
+    :param color_or_ink:        optional color used to calculate the relief colors from. if not specified, then
+                                the :data:`COLOR_GREY` constant will be used to draw the relief effect.
+    :param top_factor:          factor to brighten/darken the top-left part of a square/ellipse with a relief effect,
+                                via a HVS calculation method. pass a negative factor to use a more efficient RGB method.
+    :param bottom_factor:       factor to brighten/darken the bottom part of a square/ellipse with a relief effect,
+                                via a HVS calculation method. pass a negative factor to use a more efficient RGB method.
+    :param sunken:              if True, then the top-left part of the relief colors will be darkened instead of
+                                brightened. a raised relief effect will be produced if False (default).
+    :return:                    tuple with the brightened/darkened top and bottom colors, calculated from the argument
+                                specified in :paramref:`~relief_colors.color_or_ink`,
+                                or an empty tuple if the alpha value of :paramref:`~relief_colors.color_or_ink` is zero.
+    """
+    if not color_or_ink:
+        color_or_ink = COLOR_GREY
+    elif len(color_or_ink) > 3 and not color_or_ink[3]:
+        return ()
+
+    if sunken:
+        top_fun, bot_fun = darken_color, brighten_color
+    else:
+        top_fun, bot_fun = brighten_color, darken_color
+
+    return top_fun(color_or_ink[:3], factor=top_factor), bot_fun(color_or_ink[:3], factor=bottom_factor)
 
 
 def replace_flow_action(flow_id: str, new_action: str):
