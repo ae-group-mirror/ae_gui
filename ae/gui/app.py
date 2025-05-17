@@ -23,15 +23,12 @@ from ae.console import USER_NAME_MAX_LEN, ConsoleApp                            
 
 from .tours import TourBase
 from .utils import (
-    APP_STATE_SECTION_NAME, APP_STATE_VERSION_VAR_NAME, AppStatesType, ColorOrInk, EventKwargsType, MAX_FONT_SIZE,
-    MIN_FONT_SIZE,
-    PORTIONS_IMAGES,
-    PORTIONS_SOUNDS,
-    THEME_SECTION_PREFIX, THEME_VARIABLE_PREFIX,
-    HelpVarsType,
+    APP_STATE_SECTION_NAME, APP_STATE_VERSION_VAR_NAME, MAX_FONT_SIZE,
+    MIN_FONT_SIZE, PORTIONS_IMAGES, PORTIONS_SOUNDS, THEME_SECTION_PREFIX, THEME_VARIABLE_PREFIX,
+    AppStatesType, ColorOrInk, EventKwargsType, HelpVarsType,
     flow_action, flow_change_confirmation_event_name, flow_key, flow_key_split, flow_path_id, flow_path_strip,
-    flow_popup_class_name, id_of_flow, id_of_flow_help, id_of_state_help, module_globals, popup_event_kwargs,
-    replace_flow_action, translation_short_help_id, widget_page_id)
+    flow_popup_class_name, id_of_flow, id_of_flow_help, id_of_state_help, mix_colors, module_globals,
+    popup_event_kwargs, replace_flow_action, translation_short_help_id, widget_page_id)
 
 
 ACTIONS_EXTENDING_FLOW_PATH = ['add', 'confirm', 'edit', 'enter', 'open', 'show', 'suggest']
@@ -67,6 +64,7 @@ class MainAppBase(ConsoleApp, ABC):
     flow_id_ink: ColorOrInk = [0.99, 0.99, 0.69, 0.69]      #: rgba color for flow id / drag&drop node placeholder
     flow_path_ink: ColorOrInk = [0.99, 0.99, 0.39, 0.48]    #: rgba color for flow_path/drag&drop item placeholder
     font_size: float = 21.0                                 #: font size used toolbar and flow screens
+    help_ink: ColorOrInk = [0.09, 0.69, 0.99, 0.69]         #: rgba color to mark widgets with context-sensitive help
     info_ink: ColorOrInk = [0.99, 0.99, 0.09, 0.69]         #: rgba color for info actions
     lang_code: str = ""                                     #: optional language code (e.g. 'es' or 'es_ES' for Spanish)
     light_theme: bool = False                               #: True=light theme/background, False=dark theme
@@ -129,8 +127,8 @@ class MainAppBase(ConsoleApp, ABC):
         """ called from self._init_default_user_cfg_vars() to extend user config vars after/in self.__init__() """
         self.theme_specific_cfg_vars = {
             'cancel_ink', 'confirm_ink', 'create_ink', 'delete_ink', 'error_ink', 'flow_id_ink', 'flow_path_ink',
-            'font_size', 'info_ink', 'light_theme', 'read_ink', 'selected_ink', 'unselected_ink', 'update_ink',
-            'warn_ink',
+            'font_size', 'help_ink', 'info_ink', 'light_theme', 'read_ink', 'selected_ink', 'unselected_ink',
+            'update_ink', 'warn_ink',
         }
 
     def _init_default_user_cfg_vars(self):
@@ -802,8 +800,7 @@ class MainAppBase(ConsoleApp, ABC):
 
     def mix_background_ink(self):
         """ remix background ink if one of the basic back colors changes. """
-        self.framework_app.mixed_back_ink = [sum(_) / len(_) for _ in zip(
-            self.flow_id_ink, self.flow_path_ink, self.selected_ink, self.unselected_ink)]
+        self.framework_app.mixed_back_ink = mix_colors(self.flow_id_ink, self.flow_path_ink, self.selected_ink)
 
     def on_app_build(self):
         """ default/fallback flow change confirmation event handler. """
@@ -867,6 +864,7 @@ class MainAppBase(ConsoleApp, ABC):
         elif from_version == 5:  # until V6 release/for V5: not in app.app_states, but available as main_app attributes
             self.change_app_state('cancel_ink', self.cancel_ink, send_event=False, old_name=UNSET)
             self.change_app_state('confirm_ink', self.confirm_ink, send_event=False, old_name=UNSET)
+            self.change_app_state('help_ink', self.confirm_ink, send_event=False, old_name=UNSET)
 
     def on_app_tour_toggle(self, _flow_key: str, _event_kwargs: EventKwargsType) -> bool:
         """ event handler for to start/stop an app onboarding tour.
