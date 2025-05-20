@@ -21,7 +21,7 @@ MAX_FONT_SIZE = 99.0                            #: .. maximum font size in pixel
 
 # inks for the non-colors black, grey and white (!= 0/1 to differentiate from framework pure black/white colors)
 COLOR_BLACK = [0.009, 0.006, 0.003, 1.0]        #: black ink
-COLOR_CARK_GREY = [0.309, 0.306, 0.303, 1.0]    #: dark grey ink
+COLOR_DARK_GREY = [0.309, 0.306, 0.303, 1.0]    #: dark grey ink
 COLOR_GREY = [0.509, 0.506, 0.503, 1.0]         #: grey ink
 COLOR_LIGHT_GREY = [0.699, 0.696, 0.693, 1.0]   #: light grey ink
 COLOR_WHITE = [0.999, 0.996, 0.993, 1.0]        #: white ink
@@ -630,11 +630,7 @@ def relief_colors(color_or_ink: Optional[ColorOrInk] = None, top_factor: float =
     elif len(color_or_ink) > 3 and not color_or_ink[3]:
         return ()
 
-    if sunken:
-        top_fun, bot_fun = darken_color, brighten_color
-    else:
-        top_fun, bot_fun = brighten_color, darken_color
-
+    top_fun, bot_fun = (darken_color, brighten_color) if sunken else (brighten_color, darken_color)
     return top_fun(color_or_ink[:3], factor=top_factor), bot_fun(color_or_ink[:3], factor=bottom_factor)
 
 
