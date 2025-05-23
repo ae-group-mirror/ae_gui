@@ -66,7 +66,7 @@ class MainAppBase(ConsoleApp, ABC):
     font_size: float = 21.0                                 #: font size used toolbar and flow screens
     help_ink: ColorOrInk = [0.09, 0.69, 0.99, 0.69]         #: rgba color to mark widgets with context-sensitive help
     info_ink: ColorOrInk = [0.99, 0.99, 0.09, 0.69]         #: rgba color for info actions
-    lang_code: str = ""                                     #: optional language code (e.g. 'es' or 'es_ES' for Spanish)
+    lang_code: str = ""                                     #: user language code (e.g., 'es' or 'es_ES' for Spanish)
     light_theme: bool = False                               #: True=light theme/background, False=dark theme
     read_ink: ColorOrInk = [0.09, 0.99, 0.69, 0.69]         #: rgba color for read actions
     selected_ink: ColorOrInk = [0.69, 0.99, 0.39, 0.18]     #: rgba color for selected list items
@@ -285,7 +285,7 @@ class MainAppBase(ConsoleApp, ABC):
                                   :paramref:`~change_flow.new_flow_id` argument, but then overwrite this flow id with
                                   this event arg value to set :attr:`~MainAppBase.flow_id`.
                                 * `popup_kwargs`: optional dict passed to the Popup `__init__` method,
-                                  like e.g., dict(opener=opener_widget_of_popup, data=...).
+                                  like e.g., `dict(opener=opener_widget_of_popup, data=...)`.
                                 * `popups_to_close`: optional, either the number of top/most-recent popups to close,
                                   or a tuple of popup instances to be closed. the closing is done by this method after
                                   the flow change got confirmed.
@@ -432,7 +432,7 @@ class MainAppBase(ConsoleApp, ABC):
 
         :param classes:         optional class filter - if not passed, then only the first foremost widgets underneath
                                 the app win with an `open` method will be closed. pass tuple to restrict found popup
-                                widgets to certain classes. like e.g., by passing (Popup, DropDown, FlowPopup) to get
+                                widgets to certain classes. like e.g., pass `(Popup, DropDown, FlowPopup)` to get
                                 all popups of an app (in Kivy use Factory.WidgetClass if the widget is declared only in
                                 kv lang).
         :param count:           maximum number of popups to close (if it is negative or not specified, then all
@@ -544,7 +544,7 @@ class MainAppBase(ConsoleApp, ABC):
                                     * `count`: optional number used to render a pluralized help text
                                       for this app state change.
 
-        :param changed:         pass False before change of the app state, or True if the app state got already changed.
+        :param changed:         pass False before change of the app state, or True if the app state has already changed.
         :return:                boolean True if help mode and layout are active and the found target widget is locked,
                                 else False.
         """
@@ -652,7 +652,7 @@ class MainAppBase(ConsoleApp, ABC):
         """ find a help widget/target and help id on help mode activation.
 
         :param help_vars:       optional help vars.
-        :return:                tuple of help target widget and help id.
+        :return:                tuple of the help target widget and the help id.
         """
         activator = self.help_activator
         if self._next_help_id:
@@ -673,7 +673,7 @@ class MainAppBase(ConsoleApp, ABC):
         :param help_id:         widget.help_id attribute value to detect widget and call stack locals.
         :param help_vars:       help env variables to be extended with event activation stack frame locals
                                 and a 'self' key with the help target widget.
-        :return:                found help target widget or self.help_activator if not found.
+        :return:                the found target widget or self.help_activator if not found.
         """
         wid = help_vars.get('self')
         if not wid or help_id and not getattr(wid, 'help_id', "").startswith(help_id):
@@ -737,7 +737,7 @@ class MainAppBase(ConsoleApp, ABC):
         if event_name != en_lower and self.call_method(event_name):
             return True
 
-        # call the default handler; pass lower key code; enaml/Qt sends upper-case key code if Shift modifier is pressed
+        # call the default handler; pass lower key code; enaml/Qt sends upper-case key code if the Shift key is pressed
         return self.call_method('on_key_press', modifiers, key.lower()) or False
 
     def load_app_states(self):
@@ -844,7 +844,7 @@ class MainAppBase(ConsoleApp, ABC):
 
         :param from_version:        app state version to upgrade from.
         """
-        if from_version == 4:  # add theme_names, 7 generic colors and rename (item_) colors
+        if from_version == 4:  # add theme_names, 7 generic colors, and rename (item_) colors
             self.change_app_state('theme_names', self.theme_names, send_event=False, old_name=UNSET)
 
             self.change_app_state('create_ink', self.create_ink, send_event=False, old_name=UNSET)
@@ -883,7 +883,7 @@ class MainAppBase(ConsoleApp, ABC):
     def on_debug_level_change(self, level_name: str, _event_kwargs: EventKwargsType) -> bool:
         """ debug level app state change flow change confirmation event handler.
 
-        :param level_name:      the new debug level name to be set (passed as flow key).
+        :param level_name:      the new debug level name to be set (passed as the flow key).
         :param _event_kwargs:   unused event kwargs.
         :return:                boolean True to confirm the debug level change.
         """
@@ -1008,7 +1008,7 @@ class MainAppBase(ConsoleApp, ABC):
 
         :param theme_id:        flow key with the name/id of the theme to add/update.
         :param _event_kwargs:   unused event kwargs.
-        :return:                boolean True if the flow got accepted/redirected and changed, else False.
+        :return:                a True value if the flow got accepted/redirected and changed, else False.
         """
         self.vpo(f"MainAppBase.on_theme_save of '{theme_id}'")
 
@@ -1043,9 +1043,9 @@ class MainAppBase(ConsoleApp, ABC):
         """ called on close of UserNameEditorPopup to check user input and create/register the current os user.
 
         :param user_id:         new/old user id, passed as :paramref:`~ae.console.ConsoleApp.register_user.new_user_id`
-                                kwarg to the :meth:`ConsoleApp.register_user` method.
-        :param event_kwargs:    event kwargs, plus optionally the following kwargs which will be extracted
-                                from the event kwargs and passed onto the :meth:`ConsoleApp.register_user` method:
+                                kwarg to the method :meth:`ConsoleApp.register_user`.
+        :param event_kwargs:    event kwargs, plus optionally the following kwargs which will be extracted from the
+                                event kwargs and passed onto the :meth:`ae.console.ConsoleApp.register_user` method:
                                 * :paramref:`~ae.console.ConsoleApp.register_user.reset_cfg_vars`
                                 * :paramref:`~ae.console.ConsoleApp.register_user.set_as_default`
         :return:                True if user got registered else False.
@@ -1113,7 +1113,7 @@ class MainAppBase(ConsoleApp, ABC):
 
         :param classes:         optional class filter - if not passed, then only the widgets underneath win/root with an
                                 `open` method will be added. pass tuple of popup widget classes to restrict the returned
-                                popup instances. like e.g., by passing (Popup, DropDown, FlowPopup) to get all popups of
+                                popup instances. like e.g., pass `(Popup, DropDown, FlowPopup)` to get all popups of
                                 an ae/Kivy app (in Kivy use Factory.WidgetClass if widget is declared only in kv lang).
         :return:                list of the foremost opened/visible popup class instances (children of the app window),
                                 matching the :paramref:`classes` or having an `open` method, ordered by their
@@ -1132,8 +1132,8 @@ class MainAppBase(ConsoleApp, ABC):
     def register_user(self, **kwargs) -> bool:          # pragma: no cover # pylint: disable=arguments-differ
         """ on user registration always disable app onboarding tours on app start
 
-        :param kwargs:          see :meth:`ConsoleApp.register_user`.
-        :return:                see :meth:`ConsoleApp.register_user`.
+        :param kwargs:          see the :meth:`ConsoleApp.register_user` method.
+        :return:                see the :meth:`ConsoleApp.register_user` method.
 
         .. hint::
             also called on the tour end, after the user has entered a valid username/id in UserNameEditorPopup
@@ -1286,7 +1286,7 @@ class MainAppBase(ConsoleApp, ABC):
         """ start a new app tour, automatically cancelling a currently running app tour.
 
         :param tour_class:          optional tour (pages) class, default: tour of current help id or `OnboardingTour`.
-        :return:                    boolean True if UI-framework support tours/has tour_overlay_class set and tour
+        :return:                    boolean True if the UI-framework supports tours/has tour_overlay_class set and tour
                                     got started.
         """
         if not self.help_activator:
@@ -1329,7 +1329,10 @@ class MainAppBase(ConsoleApp, ABC):
         app_states: AppStatesType = {}
         for var_name in self.theme_specific_cfg_vars:
             var_value = self.get_variable(THEME_VARIABLE_PREFIX + var_name, section=THEME_SECTION_PREFIX + theme_id)
-            app_states[var_name] = var_value
+            if var_value is None:
+                var_value = getattr(self, var_name, None)
+            if var_value is not None:
+                app_states[var_name] = var_value
         self.setup_app_states(app_states)
 
         self.theme_update_names(theme_id)
@@ -1368,10 +1371,10 @@ class MainAppBase(ConsoleApp, ABC):
         """
         themes = self.theme_names
         if theme_id in themes:
-            themes.remove(theme_id)                         # first remove specified theme if already exists
+            themes.remove(theme_id)                     # first remove specified theme if already exists
         if not delete:
-            themes = [theme_id] + themes
-        self.change_app_state('theme_names', themes)        # .. to move it to the 1st item of the theme list
+            themes = [theme_id] + themes                # move the specified theme to the 1st item of the theme list
+        self.change_app_state('theme_names', themes)
         self.save_app_states()
 
     def upgraded_config_app_state_version(self) -> int:
@@ -1436,7 +1439,7 @@ class MainAppBase(ConsoleApp, ABC):
 
         :param wid:             widget to determine the children from.
         :param only_visible:    pass True to only return visible widgets.
-        :return:                list of children widgets of the passed widget.
+        :return:                list of the wid's children widgets.
         """
         wid_visible = self.widget_visible
         return [chi for chi in getattr(wid, 'container', wid).children if not only_visible or wid_visible(chi)]
@@ -1469,7 +1472,7 @@ class MainAppBase(ConsoleApp, ABC):
         """ calculate the minimum bounding rectangle of all the passed widgets.
 
         :param widgets:         list/tuple of widgets to determine the minimum bounding rectangle for.
-        :return:                tuple of floats with the x, y, width, height values of the bounding rectangle.
+        :return:                tuple of floats, with the x, y, width, height values of the bounding rectangle.
         """
         min_x = min_y = 999999.9
         max_x = max_y = 0.0

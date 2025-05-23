@@ -107,7 +107,7 @@ class TourBase:
         main_app.call_method('on_tour_init', self)  # notify the main app to back up additional app-specific states
 
     def backup_app_states(self):
-        """ back up current states of this app, including flow. """
+        """ back up the current states of this app, including flow. """
         main_app = self.main_app
         main_app.vpo("TourBase.backup_app_states")
         self._saved_app_states = deepcopy(main_app.retrieve_app_states())
@@ -187,7 +187,7 @@ class TourBase:
         next_idx = self.page_idx + self.auto_switch_pages
         if not 0 <= next_idx < len(self.page_ids):
             if self.auto_switch_pages is True:
-                self.cancel_auto_page_switch_request()  # only switch to next until last page reached
+                self.cancel_auto_page_switch_request()  # only switch to next until the last page reached
                 return
             self.auto_switch_pages = -self.auto_switch_pages
             next_idx += 2 * self.auto_switch_pages
