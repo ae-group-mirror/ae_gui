@@ -19,7 +19,7 @@ APP_STATE_VERSION_VAR_NAME = 'app_state_version'  #: config variable name to sto
 MIN_FONT_SIZE = 15.0                            #: minimum (see :attr:`~ae.kivy.apps.FrameworkApp.min_font_size`) and
 MAX_FONT_SIZE = 99.0                            #: .. maximum font size in pixels
 
-# inks for the non-colors black, grey and white (!= 0/1 to differentiate from framework pure black/white colors)
+# inks for the non-colors black, gray and white (!= 0/1 to differentiate from the framework's pure black/white colors)
 COLOR_BLACK = [0.009, 0.006, 0.003, 1.0]        #: black ink
 COLOR_DARK_GREY = [0.309, 0.306, 0.303, 1.0]    #: dark grey ink
 COLOR_GREY = [0.509, 0.506, 0.503, 1.0]         #: grey ink
@@ -75,7 +75,7 @@ ReliefColors = Union[tuple[ColorRGB, ColorRGB], tuple]              #: tuple of 
 
 
 def anchor_layout_x(anchor_spe: AnchorSpecType, layout_width: float, win_width: float) -> float:
-    """ calculate x position of the layout box of an anchor.
+    """ calculate the anchor's x position of the layout box.
 
     :param anchor_spe:      :data:`AnchorSpecType` instance (:func:`anchor_spec` return) with anchor position/direction.
     :param layout_width:    anchor layout width.
@@ -139,8 +139,8 @@ def anchor_spec(wid_x: float, wid_y: float, wid_width: float, wid_height: float,
     :param win_height:      app window height.
     :return:                tooltip anchor specification tuple (:data:`AnchorSpecType`) with the three items:
 
-                            * anchor_x (anchor center absolute x coordinate in the app main window),
-                            * anchor_y (anchor center absolute y coordinate in the app main window) and
+                            * anchor_x (the absolute anchor center x-coordinate in the app main window),
+                            * anchor_y (the absolute anchor center y-coordinate in the app main window) and
                             * anchor_dir (anchor direction: 'r'=right, 'i'=increase-y, 'l'=left, 'd'=decrease-y)
 
                             .. note::
@@ -249,8 +249,9 @@ def complementary_color(color_or_ink: ColorOrInk, delta_h: float = 180.0) -> Col
     """ determine the complementary color or ink without changing an optionally passed alpha/occupancy value.
 
     :param color_or_ink:    the color or ink to convert into its complementary value.
-    :param delta_h:         specify a value between -360 and +360 to get a complementary color. specify a
-                            zero value get the opposite color with the more efficient RGB algorithm.
+    :param delta_h:         specify a value between -360 and +360 to get a complementary color. specify -180 or 180
+                            to get the opposite value using the HSV algorithm, or a
+                            zero value to get the opposite color with the more efficient RGB algorithm.
                             any other value will use the HSV algorithm, which adds this value as a delta angle in
                             the HSV color circle. some harmonic delta angles are:
                                 * 30: analogous colors
@@ -260,7 +261,7 @@ def complementary_color(color_or_ink: ColorOrInk, delta_h: float = 180.0) -> Col
 
     :return:                the complementary color or ink, as the same type as the input. note that the HSV algorithm
                             does not change any monochrom/greyscale colors; pass a zero value to the delta_h parameter
-                            in order to get an "opposite"-like color from a grey-scale color (see the unit tests on how
+                            to get an "opposite"-like color from a gray-scale color (see the unit tests on how
                             the RGB algorithm does behave in relation to the HSV algorithm).
     """
     if delta_h:
@@ -411,7 +412,7 @@ def flow_object(flow_id: str) -> str:
 def flow_path_id(flow_path: list[str], path_index: int = -1) -> str:
     """ determine the flow id of the newest/last entry in the flow_path.
 
-    :param flow_path:           flow path to get the flow id from.
+    :param flow_path:           flow path to determine the flow id from its newest/latest entry.
     :param path_index:          index in the flow_path.
     :return:                    flow id string or empty string if the flow path is empty or index does not exist.
     """
@@ -544,9 +545,9 @@ def merge_popups_to_close(tap_kwargs: EventKwargsType, add_kwargs: EventKwargsTy
 
 
 def mix_colors(*colors: ColorOrInk) -> ColorOrInk:
-    """ mix colors together.
+    """ mix multiple colors or inks into a single one.
 
-    :param colors:              colors or inks to mix together.
+    :param colors:              colors or inks to mix.
     :return:                    mixed color or ink.
     """
     return [sum(_) / len(_) for _ in zip(*colors)]
@@ -599,7 +600,7 @@ def register_package_sounds():
     """ call from the module scope of the package to register/add sound file resources.
 
     no parameters needed because we use here :func:`~ae.base.stack_var` helper function to determine the
-    module file path via the `__file__` module variable of the caller module in the call stack. in this call
+    module file path via the `__file__` module variable of the caller module in the call stack. in this call,
     we have to overwrite the default value (:data:`~ae.base.SKIPPED_MODULES`) of the
     :paramref:`~ae.base.stack_var.skip_modules` parameter to not skip ae portions that are providing
     package resources and are listed in the :data:`~ae.base.SKIPPED_MODULES`.
@@ -616,9 +617,11 @@ def relief_colors(color_or_ink: Optional[ColorOrInk] = None, top_factor: float =
     :param color_or_ink:        optional color used to calculate the relief colors from. if not specified, then
                                 the :data:`COLOR_GREY` constant will be used to draw the relief effect.
     :param top_factor:          factor to brighten/darken the top-left part of a square/ellipse with a relief effect,
-                                via a HVS calculation method. pass a negative factor to use a more efficient RGB method.
+                                via the HSV calculation method. pass a negative factor to use the more efficient
+                                RGB method.
     :param bottom_factor:       factor to brighten/darken the bottom part of a square/ellipse with a relief effect,
-                                via a HVS calculation method. pass a negative factor to use a more efficient RGB method.
+                                via tbe HSV calculation method. pass a negative factor to use the more efficient
+                                RGB method.
     :param sunken:              if True, then the top-left part of the relief colors will be darkened instead of
                                 brightened. a raised relief effect will be produced if False (default).
     :return:                    tuple with the brightened/darkened top and bottom colors, calculated from the argument
@@ -648,7 +651,7 @@ def tour_help_translation(page_id: str) -> Optional[Union[str, dict[str, str]]]:
     """ determine help translation for the passed page id (flow id or app state name).
 
     :param page_id:         tour page id.
-    :return:                help translation text/dict (if exists) or None if translation not found.
+    :return:                help translation text/dict (if exists) or None if translation is not found.
     """
     return (translation_short_help_id(id_of_flow_help(page_id))[0] or
             translation_short_help_id(id_of_state_help(page_id))[0])
@@ -684,7 +687,7 @@ def update_tap_kwargs(widget_or_kwargs: Union[EventKwargsType, Any], popup_kwarg
 
     :param widget_or_kwargs:    either the tap widget (with optional tap_kwargs property, to be extended),
                                 or a tap_kwargs dict to be updated (returning an extended shallow copy of it).
-    :param popup_kwargs:        dict with items to update popup_kwargs key of tap_kwargs
+    :param popup_kwargs:        dict with items to update popup_kwargs key of.
     :param tap_kwargs:          additional tap_kwargs items to update.
     :return:                    tap_kwargs dict extended with the specified argument values.
                                 if the :paramref:`~update_tap_kwargs.widget` parameter is a widget, then the
@@ -727,4 +730,4 @@ def widget_page_id(wid: Optional[Any]) -> str:
 # reference imported but unused names in pseudo variable `_d_`, to be available in :meth:`MainAppBase.global_variables`
 _d_ = (os_platform, path_name, placeholder_path)
 module_globals = globals()
-#: used. e.g., for execution/evaluation of dynamic code, expressions and f-strings of the app tour and help systems
+""" used. e.g., for execution/evaluation of dynamic code, expressions and f-strings of the app tour and help systems """
