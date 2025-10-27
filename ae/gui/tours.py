@@ -15,7 +15,7 @@ from .utils import (
     update_tap_kwargs, widget_page_id)
 
 
-class TourBase:
+class TourBase:                 # pylint: disable=too-many-instance-attributes,too-many-public-methods
     """ abstract tour base class, automatically registering subclasses as app tours.
 
     subclass this generic, UI-framework-independent base class to bundle pages of a tour and make sure that the

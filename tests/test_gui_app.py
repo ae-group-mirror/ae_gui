@@ -529,21 +529,21 @@ class TestAppState:
 
     def test_app_state_version(self, ini_file, restore_app_env):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
-        assert app.get_var(VER_VAR, section=APP_STATE_SECTION_NAME) == VER_INI_VAL
+        assert app.get_variable(VER_VAR, section=APP_STATE_SECTION_NAME) == VER_INI_VAL
         assert app.app_state_version == VER_INI_VAL
 
         app.change_app_state(VER_VAR, VER_SET_VAL)
         assert app.app_state_version == VER_SET_VAL
-        assert app.get_var(VER_VAR, section=APP_STATE_SECTION_NAME) == VER_INI_VAL
+        assert app.get_variable(VER_VAR, section=APP_STATE_SECTION_NAME) == VER_INI_VAL
 
         app.change_app_state(VER_VAR, VER_SET_VAL + 1, old_name=UNSET)
         assert app.app_state_version == VER_SET_VAL + 1
-        assert app.get_var(VER_VAR, section=APP_STATE_SECTION_NAME) == VER_SET_VAL + 1
+        assert app.get_variable(VER_VAR, section=APP_STATE_SECTION_NAME) == VER_SET_VAL + 1
 
     def test_change_app_state(self, ini_file, restore_app_env):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
         assert app.save_app_states() == ""
-        assert app.get_var(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
+        assert app.get_variable(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
         # assert app.retrieve_app_states() + light_theme/sound_volume/... == TST_DICT
         assert all(k in app.retrieve_app_states().keys() and app.retrieve_app_states()[k] == v
                    for k, v in TST_DICT.items())
@@ -562,13 +562,13 @@ class TestAppState:
         assert all(k in app.retrieve_app_states().keys() and app.retrieve_app_states()[k] == v
                    for k, v in chg_dict.items())
 
-        assert app.get_var(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
+        assert app.get_variable(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
         assert app.save_app_states() == ""
-        assert app.get_var(TST_VAR, section=APP_STATE_SECTION_NAME) == chg_val
+        assert app.get_variable(TST_VAR, section=APP_STATE_SECTION_NAME) == chg_val
 
     def test_load_app_states(self, ini_file, restore_app_env):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
-        assert app.get_var(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
+        assert app.get_variable(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
 
         app.load_app_states()
         assert getattr(app, TST_VAR) == TST_VAL
@@ -626,7 +626,7 @@ class TestAppState:
 
     def test_retrieve_app_states(self, ini_file, restore_app_env):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
-        assert app.get_var(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
+        assert app.get_variable(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
         for k, v in TST_DICT.items():
             assert k in app.retrieve_app_states().keys()
             assert app.retrieve_app_states()[k] == v
@@ -636,7 +636,7 @@ class TestAppState:
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
         old_dict = TST_DICT.copy()
         try:
-            assert app.get_var(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
+            assert app.get_variable(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
             for k, v in TST_DICT.items():
                 assert k in app.retrieve_app_states().keys()
                 assert app.retrieve_app_states()[k] == v
@@ -646,7 +646,7 @@ class TestAppState:
             setattr(app, VER_VAR, VER_SET_VAL)
             setattr(app, TST_VAR, chg_val)
             assert app.save_app_states() == ""
-            assert app.get_var(TST_VAR, section=APP_STATE_SECTION_NAME) == chg_val
+            assert app.get_variable(TST_VAR, section=APP_STATE_SECTION_NAME) == chg_val
             for k, v in TST_DICT.items():
                 assert k in app.retrieve_app_states().keys()
                 assert app.retrieve_app_states()[k] == v
@@ -1242,10 +1242,10 @@ class TestOtherMainAppMethods:
         ini_file_path = norm_path(ini_file)
         assert app._main_cfg_fnam == ini_file_path
 
-    def test_ini_file_added_in_tests_subdir_after_get_opt(self, restore_app_env, tst_app_key, ini_file):
+    def test_ini_file_added_in_tests_subdir_after_get_option(self, restore_app_env, tst_app_key, ini_file):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
         ini_file_path = norm_path(ini_file)
-        app.get_opt('debug_level')
+        app.get_option('debug_level')
         assert app._main_cfg_fnam == ini_file_path
 
     def test_ini_file_app_doc_path(self, restore_app_env, tst_app_key):
@@ -1259,13 +1259,13 @@ class TestOtherMainAppMethods:
             if os.path.exists(ini_file_path):
                 os.remove(ini_file_path)
 
-    def test_ini_file_app_doc_path_after_get_opt(self, restore_app_env, tst_app_key):
+    def test_ini_file_app_doc_path_after_get_option(self, restore_app_env, tst_app_key):
         os.makedirs(os.path.join(normalize("{doc}"), tst_app_key), exist_ok=True)  # pyTstConsAppKey will not be deleted
         ini_file_path = norm_path(os.path.join(normalize('{doc}'), tst_app_key, tst_app_key + INI_EXT))
         try:
             _create_ini_file(ini_file_path)
             app = ImplementationOfMainApp(app_name=tst_app_key)
-            app.get_opt('debug_level')
+            app.get_option('debug_level')
             assert app._main_cfg_fnam == ini_file_path
         finally:
             if os.path.exists(ini_file_path):

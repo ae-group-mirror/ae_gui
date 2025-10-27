@@ -707,7 +707,7 @@ from ae.i18n import register_package_translations                               
 from .utils import register_package_images, register_package_sounds
 
 
-__version__ = '0.3.114'
+__version__ = '0.3.115'
 
 
 register_package_images()

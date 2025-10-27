@@ -2,6 +2,7 @@
 abstract Framework-independent base class for python applications with a graphical user interface
 -------------------------------------------------------------------------------------------------
 """
+# pylint: disable=too-many-lines
 import os
 
 from abc import ABC, abstractmethod
@@ -49,7 +50,7 @@ HIDDEN_GLOBALS = (
 """ tuple of global/module variable names that are hidden in :meth:`~MainAppBase.global_variables` """
 
 
-class MainAppBase(ConsoleApp, ABC):
+class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attributes,too-many-public-methods
     """ abstract base class to implement a GUIApp-conform app class """
     # app states attributes
     app_state_version: int = 0                              #: version number of the app state variables in <config>.ini
@@ -256,13 +257,14 @@ class MainAppBase(ConsoleApp, ABC):
         self.change_observable(app_state_name, state_value, is_app_state=True)
 
         if old_name or old_name is UNSET:
-            self.set_var(app_state_name, state_value, section=APP_STATE_SECTION_NAME, old_name=old_name or "")
+            self.set_variable(app_state_name, state_value, section=APP_STATE_SECTION_NAME, old_name=old_name or "")
 
         if send_event:
             self.call_method('on_' + app_state_name)
 
         self.help_app_state_display(help_vars, changed=True)
 
+    # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     def change_flow(self, new_flow_id: str, **event_kwargs) -> bool:
         """ try to change/switch the current flow id to the value passed in :paramref:`~change_flow.new_flow_id`.
 
@@ -796,7 +798,7 @@ class MainAppBase(ConsoleApp, ABC):
 
         if is_empty or lang_code != old_lang:
             default_language(lang_code)
-            self.set_var('lang_code', lang_code, section=APP_STATE_SECTION_NAME)  # add optional app state var to config
+            self.set_variable('lang_code', lang_code, section=APP_STATE_SECTION_NAME)  # add opt app state var to config
 
     def mix_background_ink(self):
         """ remix background ink if one of the basic back colors changes. """
@@ -889,7 +891,7 @@ class MainAppBase(ConsoleApp, ABC):
         """
         debug_level = next(num for num, name in DEBUG_LEVELS.items() if name == level_name)
         self.vpo(f"MainAppBase.on_debug_level_change to {level_name} -> {debug_level}")
-        self.set_opt('debug_level', debug_level)
+        self.set_option('debug_level', debug_level)
         return True
 
     def on_flow_change(self, flow_id: str, event_kwargs: EventKwargsType) -> bool:
@@ -1198,7 +1200,7 @@ class MainAppBase(ConsoleApp, ABC):
             elif key == 'flow_path':
                 state = flow_path_strip(state)
 
-            err_msg = self.set_var(key, state, section=APP_STATE_SECTION_NAME)
+            err_msg = self.set_variable(key, state, section=APP_STATE_SECTION_NAME)
             self.vpo(f"MainAppBase.save_app_state {key=} {state=} {err_msg=}")
             if err_msg:
                 break
@@ -1234,6 +1236,7 @@ class MainAppBase(ConsoleApp, ABC):
             if key == 'flow_id' and flow_action(val) == 'focus':
                 self._last_focus_flow_id = val
 
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
     def show_confirmation(self, message: str, title: str = "", confirm_flow_id: str = '',
                           confirm_kwargs: Optional[EventKwargsType] = None, confirm_text: str = "") -> bool:
         """ display a simple confirmation popup to the user, implemented by the used UI-framework.
@@ -1248,6 +1251,7 @@ class MainAppBase(ConsoleApp, ABC):
         event_kwargs = popup_event_kwargs(message, title, confirm_flow_id, confirm_kwargs, confirm_text)
         return self.change_flow(id_of_flow('show', 'confirmation'), **event_kwargs)
 
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
     def show_input(self, message: str, title: str = "", input_default: str = "", enter_confirms: bool = True,
                    confirm_flow_id: str = '', confirm_kwargs: Optional[EventKwargsType] = None, confirm_text: str = ""
                    ) -> bool:

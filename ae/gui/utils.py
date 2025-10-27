@@ -59,7 +59,9 @@ AnchorSpecType = tuple[float, float, str]                           #: (see retu
 
 AppStatesType = dict[str, Any]                                      #: app state config variable type
 
+# pylint: disable=invalid-name
 ColorRGB = Union[tuple[float, float, float], list[float]]           #: color red, green and blue parts
+# pylint: disable=invalid-name
 ColorRGBA = Union[tuple[float, float, float, float], list[float]]   #: ink is rgb color and alpha
 ColorOrInk = Union[ColorRGB, ColorRGBA]                             #: color or ink type
 
@@ -127,6 +129,7 @@ def anchor_points(font_size: float, anchor_spe: AnchorSpecType) -> tuple[float, 
             )
 
 
+# pylint: disable=too-many-arguments,too-many-positional-arguments
 def anchor_spec(wid_x: float, wid_y: float, wid_width: float, wid_height: float, win_width: float, win_height: float
                 ) -> AnchorSpecType:
     """ calculate anchor center pos (x, y) and anchor direction to the targeted widget.
