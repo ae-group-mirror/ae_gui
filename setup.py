@@ -156,7 +156,7 @@ setup_kwargs = {
     },
     'python_requires': '>=3.12',
     'url': 'https://gitlab.com/ae-group/ae_gui',
-    'version': '0.3.116',
+    'version': '0.3.117',
     'zip_safe': False,
 }
 
