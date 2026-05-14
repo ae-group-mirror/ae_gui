@@ -4,10 +4,11 @@ from typing import Callable, Any, Union
 
 from unittest.mock import MagicMock, patch
 
-from ae.gui import register_package_images, register_package_sounds
+from ae.gui import register_package_images
 from conftest import skip_gitlab_ci
 
-from ae.base import INI_EXT, UNSET, norm_path, os_user_name
+from ae.base import INI_EXT, UNSET, norm_path
+from ae.system import os_user_name
 from ae.paths import normalize, FilesRegister
 from ae.core import DEBUG_LEVELS, DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED
 from ae.console import USER_NAME_MAX_LEN

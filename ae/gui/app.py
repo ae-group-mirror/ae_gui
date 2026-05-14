@@ -11,7 +11,8 @@ from typing import Any, Callable, Optional, Type, Union
 
 from ae.base import (                                                                                   # type: ignore
     CFG_EXT, INI_EXT, UNSET,
-    instantiate_config_parser, norm_name, now_str, os_path_basename, os_path_join, stack_var, stack_vars)
+    norm_name, now_str, os_path_basename, os_path_join)
+from ae.system import instantiate_config_parser, stack_var, stack_vars                                  # type: ignore
 from ae.files import RegisteredFile                                                                     # type: ignore
 from ae.paths import (                                                                                  # type: ignore
     copy_file, copy_tree, normalize, coll_folders, placeholder_key, Collector, FilesRegister)
@@ -764,7 +765,7 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
         current_version = app_states.get(APP_STATE_VERSION_VAR_NAME, 0)
         if current_version:
             upgrade_version = self.upgraded_config_app_state_version()
-            if upgrade_version > current_version:
+            if upgrade_version > current_version:   # pragma: no cover
                 for from_version in range(current_version, upgrade_version):
                     self.call_method('on_app_state_version_upgrade', from_version)
                 self.change_app_state(APP_STATE_VERSION_VAR_NAME, upgrade_version, send_event=False, old_name=UNSET)
@@ -863,7 +864,8 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
             val = self.get_variable('unselected_item_ink', APP_STATE_SECTION_NAME, self.unselected_ink)
             self.change_app_state('unselected_ink', val, send_event=False, old_name='unselected_item_ink')
 
-        elif from_version == 5:  # until V6 release/for V5: not in app.app_states, but available as main_app attributes
+        elif from_version == 5:     # pragma: no cover
+            # until V6 release/for V5: not in app.app_states, but available as main_app attributes
             self.change_app_state('cancel_ink', self.cancel_ink, send_event=False, old_name=UNSET)
             self.change_app_state('confirm_ink', self.confirm_ink, send_event=False, old_name=UNSET)
             self.change_app_state('help_ink', self.confirm_ink, send_event=False, old_name=UNSET)
