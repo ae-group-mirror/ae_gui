@@ -1,5 +1,6 @@
 # dependencies of the ae.gui portion
 ae_base
+ae_system
 ae_files
 ae_paths
 ae_updater

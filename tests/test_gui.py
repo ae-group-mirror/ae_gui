@@ -9,7 +9,8 @@ this template) with an import statement.
 import importlib
 import os
 
-from ae.base import TESTS_FOLDER, module_attr                               # type: ignore
+from ae.base import TESTS_FOLDER
+from ae.system import module_attr
 
 
 main_imp_name = "ae.gui"

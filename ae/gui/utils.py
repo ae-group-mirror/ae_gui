@@ -7,8 +7,8 @@ import re
 from math import cos, sin, sqrt
 from typing import Any, Callable, Optional, Type, Union
 
-from ae.base import (                                                                                   # type: ignore
-    NAME_PARTS_SEP, norm_path, os_path_dirname, os_path_join, os_platform, snake_to_camel, stack_var)
+from ae.base import NAME_PARTS_SEP, norm_path, os_path_dirname, os_path_join, snake_to_camel            # type: ignore
+from ae.system import os_platform, stack_var                                                            # type: ignore
 from ae.paths import path_name, placeholder_path, FilesRegister                                         # type: ignore
 from ae.i18n import get_text, translation                                                               # type: ignore
 
@@ -587,11 +587,11 @@ def popup_event_kwargs(message: str, title: str,
 def register_package_images():
     """ call from the module scope of the package to register/add the image/img resources path.
 
-    no parameters needed because we use here :func:`~ae.base.stack_var` helper function to determine the
+    no parameters needed because we use here :func:`~ae.system.stack_var` helper function to determine the
     module file path via the `__file__` module variable of the caller module in the call stack. in this call
-    we have to overwrite the default value (:data:`~ae.base.SKIPPED_MODULES`) of the
-    :paramref:`~ae.base.stack_var.skip_modules` parameter to not skip ae portions that are providing
-    package resources and are listed in the :data:`~ae.base.SKIPPED_MODULES`, like e.g., :mod:`ae.gui.app` and
+    we have to overwrite the default value (:data:`~ae.system.SKIPPED_MODULES`) of the
+    :paramref:`~ae.system.stack_var.skip_modules` parameter to not skip ae portions that are providing
+    package resources and are listed in the :data:`~ae.system.SKIPPED_MODULES`, like e.g., :mod:`ae.gui.app` and
     :mod:`ae.gui.utils` (passing empty string '' to overwrite the default skip list).
     """
     package_path = os_path_dirname(norm_path(stack_var('__file__', '')))
@@ -602,11 +602,11 @@ def register_package_images():
 def register_package_sounds():
     """ call from the module scope of the package to register/add sound file resources.
 
-    no parameters needed because we use here :func:`~ae.base.stack_var` helper function to determine the
+    no parameters needed because we use here :func:`~ae.system.stack_var` helper function to determine the
     module file path via the `__file__` module variable of the caller module in the call stack. in this call,
-    we have to overwrite the default value (:data:`~ae.base.SKIPPED_MODULES`) of the
-    :paramref:`~ae.base.stack_var.skip_modules` parameter to not skip ae portions that are providing
-    package resources and are listed in the :data:`~ae.base.SKIPPED_MODULES`.
+    we have to overwrite the default value (:data:`~ae.system.SKIPPED_MODULES`) of the
+    :paramref:`~ae.system.stack_var.skip_modules` parameter to not skip ae portions that are providing
+    package resources and are listed in the :data:`~ae.system.SKIPPED_MODULES`.
     """
     package_path = os_path_dirname(norm_path(stack_var('__file__', '')))
     search_path = os_path_join(package_path, 'snd/**')
