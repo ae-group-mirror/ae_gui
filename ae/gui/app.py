@@ -3,11 +3,13 @@ abstract Framework-independent base class for python applications with a graphic
 -------------------------------------------------------------------------------------------------
 """
 # pylint: disable=too-many-lines
+from __future__ import annotations
 import os
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from copy import deepcopy
-from typing import Any, Callable, Optional, Type, Union
+from typing import TYPE_CHECKING, Any, cast
 
 from ae.base import (                                                                                   # type: ignore
     CFG_EXT, INI_EXT, UNSET,
@@ -23,7 +25,6 @@ from ae.i18n import (                                                           
 from ae.core import DEBUG_LEVELS, registered_app_names                                                  # type: ignore
 from ae.console import USER_NAME_MAX_LEN, ConsoleApp                                                    # type: ignore
 
-from .tours import TourBase
 from .utils import (
     APP_STATE_SECTION_NAME, APP_STATE_VERSION_VAR_NAME, MAX_FONT_SIZE,
     MIN_FONT_SIZE, PORTIONS_IMAGES, PORTIONS_SOUNDS, THEME_SECTION_PREFIX, THEME_VARIABLE_PREFIX,
@@ -31,6 +32,9 @@ from .utils import (
     flow_action, flow_change_confirmation_event_name, flow_key, flow_key_split, flow_path_id, flow_path_strip,
     flow_popup_class_name, id_of_flow, id_of_flow_help, id_of_state_help, mix_colors, module_globals,
     popup_event_kwargs, replace_flow_action, translation_short_help_id, widget_page_id)
+
+if TYPE_CHECKING:
+    from .tours import TourLayout, TourBase
 
 
 ACTIONS_EXTENDING_FLOW_PATH = ['add', 'confirm', 'edit', 'enter', 'open', 'show', 'suggest']
@@ -45,9 +49,9 @@ IGNORED_HELP_FLOWS = (CLOSE_POPUP_FLOW_ID, )                        #: tuple of 
 IGNORED_HELP_STATES = ('flow_id', 'flow_path', 'win_rectangle')     #: tuple of app state names never searched help for
 
 HIDDEN_GLOBALS = (
-    'ABC', 'abstractmethod', '_add_base_globals', 'Any', '__builtins__', '__cached__', 'Callable', '_d_',
-    '__doc__', '__file__', '__loader__', 'module_globals', '__name__', 'Optional', '__package__', '__path__',
-    '__spec__', 'Type', '__version__')
+    'ABC', 'abstractmethod', '_add_base_globals', 'Any', '__builtins__', '__cached__', 'Callable', 'cast', '_d_',
+    '__doc__', '__file__', '__loader__', 'module_globals', '__name__', '__package__', '__path__',
+    '__spec__', '__version__')
 """ tuple of global/module variable names that are hidden in :meth:`~MainAppBase.global_variables` """
 
 
@@ -88,21 +92,21 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
     space_width: float = 8.1                                #: width of a space char in pixels; depends on font size
 
     # optional app resources caches
-    image_files: Optional[FilesRegister] = None             #: image/icon files
-    sound_files: Optional[FilesRegister] = None             #: sound/audio files
+    image_files: FilesRegister | None = None                #: image/icon files
+    sound_files: FilesRegister | None = None                #: sound/audio files
 
     # other attributes
     theme_specific_cfg_vars: set[str] = set()               #: config-variables that changes when the theme gets changed
 
     # help/tour
-    displayed_help_id: str = ''                 #: message id of currently explained/focused target widget in help mode
-    help_activator: Any = None                  #: help mode de-/activator button widget
-    help_layout: Optional[Any] = None           #: help text container widget in active help mode else None
-    tour_layout: Optional[Any] = None           #: tour layout/overlay widget in active tour mode else None
-    tour_overlay_class: Optional[Type] = None   #: UI-framework-specific tour overlay class, set by main app subclass
+    displayed_help_id: str = ''                         #: message id of explained/focused target widget in help mode
+    help_activator: Any = None                          #: help mode de-/activator button widget
+    help_layout: Any | None = None                      #: help text container widget in active help mode else None
+    tour_layout: TourLayout | None = None               #: tour layout/overlay widget in active tour mode else None
+    tour_overlay_class: TourLayout | None = None        #: UI-framework-specific tour overlay class, set by main app
 
-    _next_help_id: str = ''                     #: last app-state/flow change to show help text on help mode activation
-    _closing_popup_open_flow_id: str = ''       #: flow id of just closed popup
+    _next_help_id: str = ''                             #: last app-state/flow change show help on help mode activation
+    _closing_popup_open_flow_id: str = ''               #: flow id of just closed popup
 
     def __init__(self, **console_app_kwargs):
         """ create an instance of app class.
@@ -112,8 +116,8 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
         self._exit_code = 0                             #: init by stop_app() and passed onto OS by run_app()
         self._last_focus_flow_id = id_of_flow('')       #: id of the last valid focused window/widget/item/context
 
-        self._start_event_loop: Optional[Callable]      #: callable to start event loop of the GUI framework
-        self._stop_event_loop: Optional[Callable]       #: callable to start event loop of the GUI framework
+        self._start_event_loop: Callable | None         # type: ignore #: callable to start event loop of GUI framework
+        self._stop_event_loop: Callable | None          # type: ignore #: callable to start event loop of GUI framework
 
         self.flow_path = []         # init for literal type recognition - will be overwritten by setup_app_states()
 
@@ -151,7 +155,7 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
             self.user_specific_cfg_vars.add((APP_STATE_SECTION_NAME, var_name))
 
     @abstractmethod
-    def call_method_delayed(self, delay: float, callback: Union[Callable, str], *args, **kwargs) -> Any:
+    def call_method_delayed(self, delay: float, callback: Callable | str, *args, **kwargs) -> Any:
         """ delayed call of passed callable/method with args/kwargs catching and logging exceptions preventing app exit.
 
         :param delay:           delay in seconds before calling the callable/method specified by
@@ -164,7 +168,7 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
         """
 
     @abstractmethod
-    def call_method_repeatedly(self, interval: float, callback: Union[Callable, str], *args, **kwargs) -> Any:
+    def call_method_repeatedly(self, interval: float, callback: Callable | str, *args, **kwargs) -> Any:
         """ repeated call of passed callable/method with args/kwargs catching and logging exceptions preventing app exit
 
         :param interval:        interval in seconds between two calls of the callable/method specified by
@@ -188,7 +192,7 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
         """ button tapped event handler to switch help mode between active and inactive (also inactivating tour). """
 
     @abstractmethod
-    def init_app(self, framework_app_class: Any = None) -> tuple[Optional[Callable], Optional[Callable]]:
+    def init_app(self, framework_app_class: Any = None) -> tuple[Callable | None, Callable | None]:
         """ initialize framework app instance and root window/layout, return GUI event loop start/stop methods.
 
         :param framework_app_class: class to create an app instance (optionally extended by the app project).
@@ -227,12 +231,12 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
             app_configs = tuple(ana + ext for ana in registered_app_names() for ext in (INI_EXT, CFG_EXT))
             coll.collect("{ado}", "{usr}", "{cwd}", append=app_configs)
             for file in coll.files:
-                copy_file(file, os_path_join(backup_root, placeholder_key(file) + "_" + os_path_basename(file)))
+                copy_file(file, os_path_join(backup_root, f"{placeholder_key(file)}_{os_path_basename(file)}"))
 
             coll = Collector(item_collector=coll_folders)
             coll.collect("{ado}", "{cwd}", append=('img', 'loc', 'snd'))
             for path in coll.paths:
-                copy_tree(path, os_path_join(backup_root, placeholder_key(path) + "_" + os_path_basename(path)))
+                copy_tree(path, os_path_join(backup_root, f"{placeholder_key(path)}_{os_path_basename(path)}"))
         except (PermissionError, Exception) as ex:      # pylint: disable=broad-except
             self.show_message(f"backup to '{backup_root}' failed with exception '{ex}'")
 
@@ -409,7 +413,7 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
             setattr(self.framework_app, name, value)
 
     @staticmethod
-    def class_by_name(class_name: str) -> Optional[Type]:
+    def class_by_name(class_name: str) -> type | None:
         """ search class name in framework modules as well as in app main.py to return the related class/type object.
 
         :param class_name:      name of the class.
@@ -450,7 +454,7 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
                     popup.close()
                 count -= 1
 
-    def find_image(self, image_name: str, height: float = 32.0, light_theme: bool = True) -> Optional[RegisteredFile]:
+    def find_image(self, image_name: str, height: float = 32.0, light_theme: bool = True) -> RegisteredFile | None:
         """ find the best fitting image in the registered img folders.
 
         :param image_name:      name of the image (file name without extension).
@@ -475,20 +479,22 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
             return abs(file.properties.get('height', -MAX_FONT_SIZE) - height)
 
         if self.image_files:
+            # noinspection PyTypeChecker
             return self.image_files(image_name, property_matcher=property_matcher, file_sorter=file_sorter)
         return None
 
-    def find_sound(self, sound_name: str) -> Optional[RegisteredFile]:
+    def find_sound(self, sound_name: str) -> RegisteredFile | None:
         """ find sound by name.
 
         :param sound_name:      name of the sound to search for.
         :return:                cached sound file object (RegisteredFile/CachedFile) if sound name was found else None.
         """
         if self.sound_files:    # prevent error on app startup (setup_app_states() called before load_images()
+            # noinspection PyTypeChecker
             return self.sound_files(sound_name)
         return None
 
-    def find_widget(self, match: Callable[[Any], bool], root_widget: Optional[Any] = None) -> Optional[Any]:
+    def find_widget(self, match: Callable[[Any], bool], root_widget: Any | None = None) -> Any | None:
         """ bottom-up-search the widget tree returning the first matching widget in reversed z-order (foremost first).
 
         :param match:           callable called with the widget as an argument, returning True if the widget matches.
@@ -508,7 +514,7 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
 
         return child_wid(self.widget_children(root_widget or self.framework_win))
 
-    def flow_path_action(self, flow_path: Optional[list[str]] = None, path_index: int = -1) -> str:
+    def flow_path_action(self, flow_path: list[str] | None = None, path_index: int = -1) -> str:
         """ determine the action of the last (newest) entry in the flow_path.
 
         :param flow_path:       optional flow path to get the flow action from (default=self.flow_path).
@@ -555,6 +561,7 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
         if not app_state_name or app_state_name in IGNORED_HELP_STATES:
             return False
 
+        # noinspection PyTypeChecker
         help_id = id_of_state_help(app_state_name)
 
         if self.help_is_inactive(help_id):
@@ -590,7 +597,7 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
             key_suffix = ''
             self.play_beep()
         elif key_suffix == 'after' and 'next_help_id' in has_trans and not self._closing_popup_open_flow_id:
-            help_id = short_help_id = has_trans['next_help_id']     # type: ignore # silly mypy, Pycharm is more clever
+            help_id = short_help_id = has_trans['next_help_id']     # type: ignore # silly mypy, PyCharm is more clever
             key_suffix = ''
 
         glo_vars = self.global_variables()
@@ -702,7 +709,7 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
 
         return wid
 
-    def img_file(self, image_name: str, font_size: Optional[float] = None, light_theme: Optional[bool] = None) -> str:
+    def img_file(self, image_name: str, font_size: float | None = None, light_theme: bool | None = None) -> str:
         """ shortcutting :meth:`~MainAppBase.find_image` method w/o bound property to get the image file path.
 
         :param image_name:      image name (file name stem).
@@ -716,6 +723,7 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
             if light_theme is None:
                 light_theme = self.light_theme
 
+            # noinspection PyTypeChecker
             img_obj = self.find_image(image_name, height=font_size, light_theme=light_theme)
             if img_obj:
                 return img_obj.path
@@ -1076,7 +1084,7 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
 
         return True
 
-    def open_popup(self, popup_class: Type, **popup_kwargs) -> Any:
+    def open_popup(self, popup_class: type, **popup_kwargs) -> Any:
         """ open Popup/DropDown, calling the `open`/`show` method of the instance created from the passed popup class.
 
         :param popup_class:     class of the Popup/DropDown widget/window.
@@ -1087,7 +1095,7 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
             overwrite this method if the used GUI framework is providing a different method to open a popup window or if
             a widget in the Popup/DropDown needs to get the input focus.
         """
-        self.dpo(f"MainAppBase.open_popup {popup_class} {popup_kwargs}")
+        self.dpo(f"MainAppBase.open_popup {popup_class.__name__} {popup_kwargs}")
         popup_instance = popup_class(**popup_kwargs)
         open_method = getattr(popup_instance, 'open', getattr(popup_instance, 'show', None))
         if callable(open_method):
@@ -1197,10 +1205,10 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
             if new_state is not None:
                 state = new_state
 
-            if key == 'flow_id' and flow_action(state) != 'focus':
+            if key == 'flow_id' and flow_action(cast(str, state)) != 'focus':
                 state = id_of_flow('')
             elif key == 'flow_path':
-                state = flow_path_strip(state)
+                state = flow_path_strip(cast(list[str], state))
 
             err_msg = self.set_variable(key, state, section=APP_STATE_SECTION_NAME)
             self.vpo(f"MainAppBase.save_app_state {key=} {state=} {err_msg=}")
@@ -1240,7 +1248,7 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
 
     # pylint: disable=too-many-arguments,too-many-positional-arguments
     def show_confirmation(self, message: str, title: str = "", confirm_flow_id: str = '',
-                          confirm_kwargs: Optional[EventKwargsType] = None, confirm_text: str = "") -> bool:
+                          confirm_kwargs: EventKwargsType | None = None, confirm_text: str = "") -> bool:
         """ display a simple confirmation popup to the user, implemented by the used UI-framework.
 
         :param message:         message string to display.
@@ -1255,7 +1263,7 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
 
     # pylint: disable=too-many-arguments,too-many-positional-arguments
     def show_input(self, message: str, title: str = "", input_default: str = "", enter_confirms: bool = True,
-                   confirm_flow_id: str = '', confirm_kwargs: Optional[EventKwargsType] = None, confirm_text: str = ""
+                   confirm_flow_id: str = '', confirm_kwargs: EventKwargsType | None = None, confirm_text: str = ""
                    ) -> bool:
         """ display a simple input box popup to the user, implemented by the used UI-framework.
 
@@ -1288,7 +1296,7 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
         event_kwargs = popup_event_kwargs(message, title)
         return self.change_flow(id_of_flow('show', 'message'), **event_kwargs)
 
-    def start_app_tour(self, tour_class: Optional[Type[TourBase]] = None) -> bool:
+    def start_app_tour(self, tour_class: type[TourBase] | None = None) -> bool:
         """ start a new app tour, automatically cancelling a currently running app tour.
 
         :param tour_class:          optional tour (pages) class, default: tour of current help id or `OnboardingTour`.
@@ -1300,13 +1308,14 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
             return False
 
         tour_layout_class = self.tour_overlay_class
-        if not tour_layout_class:
+        if tour_layout_class is None:
             self.po("MainAppBase.start_app_tour(): tour start cancelled because tour overlay/layout class is not set")
             return False
 
         if self.tour_layout:
             self.tour_layout.stop_tour()
-        tour_layout_class(self, tour_class=tour_class)  # pylint: disable=not-callable # false positive
+        # noinspection PyCallingNonCallable
+        tour_layout_class(self, tour_class=tour_class)  # type: ignore # pylint: disable=not-callable # false positive
         return bool(self.tour_layout)   # overlay instance sets main_app./framework_app.tour_layout on tour start
 
     def stop_app(self, exit_code: int = 0):
@@ -1394,7 +1403,7 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
         cfg_parser.read(cfg_file_name, encoding='utf-8')
         return cfg_parser.getint(APP_STATE_SECTION_NAME, APP_STATE_VERSION_VAR_NAME, fallback=0)
 
-    def widget_by_app_state_name(self, app_state_name: str) -> Optional[Any]:
+    def widget_by_app_state_name(self, app_state_name: str) -> Any | None:
         """ determine the first (top-most on z-axis) widget having the passed app state name (app_state_name).
 
         :param app_state_name:  app state name of the widget's `app_state_name` attribute.
@@ -1403,7 +1412,7 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
         """
         return self.widget_by_attribute('app_state_name', app_state_name)
 
-    def widget_by_attribute(self, att_name: str, att_value: str, root_widget: Optional[Any] = None) -> Optional[Any]:
+    def widget_by_attribute(self, att_name: str, att_value: str, root_widget: Any | None = None) -> Any | None:
         """ determine the first (top-most on z-axis) widget having the passed attribute name and value.
 
         :param att_name:        attribute name of the searched widget.
@@ -1413,7 +1422,7 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
         """
         return self.find_widget(lambda widget: getattr(widget, att_name, None) == att_value, root_widget=root_widget)
 
-    def widget_by_id(self, widget_id: str, root_widget: Optional[Any] = None) -> Optional[Any]:
+    def widget_by_id(self, widget_id: str, root_widget: Any | None = None) -> Any | None:
         """ determine the first (top-most on z-axis) widget identified by the passed widget_id.
 
         :param widget_id:       id of the widget to search for.
@@ -1422,7 +1431,7 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
         """
         return self.widget_by_attribute('id', widget_id, root_widget=root_widget)
 
-    def widget_by_flow_id(self, flow_id: str) -> Optional[Any]:
+    def widget_by_flow_id(self, flow_id: str) -> Any | None:
         """ determine the first (top-most on z-axis) widget having the passed flow_id.
 
         :param flow_id:         flow id value of the searched widget's `tap_flow_id`/`focus_flow_id` attribute.
@@ -1431,7 +1440,7 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
         """
         return self.widget_by_attribute('tap_flow_id', flow_id) or self.widget_by_attribute('focus_flow_id', flow_id)
 
-    def widget_by_page_id(self, page_id: str) -> Optional[Any]:
+    def widget_by_page_id(self, page_id: str) -> Any | None:
         """ determine the first (top-most on z-axis) widget having the passed tour page id.
 
         :param page_id:         widgets tour page id from `tap_flow_id`/`focus_flow_id`/`app_state_name` attribute.
@@ -1448,7 +1457,8 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
         :return:                list of the wid's children widgets.
         """
         wid_visible = self.widget_visible
-        return [chi for chi in getattr(wid, 'container', wid).children if not only_visible or wid_visible(chi)]
+        wid = getattr(wid, 'container', None) or wid
+        return [chi for chi in wid.children if not only_visible or wid_visible(chi)]
 
     @staticmethod
     def widget_pos(wid: Any) -> tuple[float, float]:
@@ -1474,7 +1484,7 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
                 tourable_children.append(page_id)
         return tourable_children
 
-    def widgets_enclosing_rectangle(self, widgets: Union[list, tuple]) -> tuple[float, float, float, float]:
+    def widgets_enclosing_rectangle(self, widgets: list | tuple) -> tuple[float, float, float, float]:
         """ calculate the minimum bounding rectangle of all the passed widgets.
 
         :param widgets:         list/tuple of widgets to determine the minimum bounding rectangle for.

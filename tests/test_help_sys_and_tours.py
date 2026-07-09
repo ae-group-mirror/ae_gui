@@ -1,7 +1,8 @@
 """ test ae.gui.tours module """
 import pytest
 
-from typing import Any, Optional, Callable, Union
+from collections.abc import Callable
+from typing import Any
 from unittest.mock import MagicMock, patch, call
 
 from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED
@@ -13,7 +14,7 @@ from ae.gui.utils import (
 from ae.gui.app import MainAppBase
 # noinspection PyProtectedMember
 from ae.gui.tours import (
-    _OPEN_USER_PREFERENCES_FLOW_ID, OnboardingTour, TourBase, TourDropdownFromButton, UserPreferencesTour)
+    _OPEN_USER_PREFERENCES_FLOW_ID, OnboardingTour, TourBase, TourDropdownFromButton, TourLayout, UserPreferencesTour)
 
 
 class AbstractsImplementation(MainAppBase):
@@ -21,16 +22,16 @@ class AbstractsImplementation(MainAppBase):
 
     ensure_top_most_z_index_called = 0
 
-    def init_app(self, _framework_app_class: Any = None) -> tuple[Optional[Callable], Optional[Callable]]:
+    def init_app(self, _framework_app_class: Any = None) -> tuple[Callable | None, Callable | None]:
         """ MainAppBase abstract method implementation """
         assert self
         return lambda x: None, lambda x: None
 
-    def call_method_delayed(self, _delay: float, callback: Union[Callable, str], *args, **kwargs) -> Any:
+    def call_method_delayed(self, _delay: float, callback: Callable | str, *args, **kwargs) -> Any:
         """ implement delayed callback - ignoring delay arg for tests. """
         return self.call_method(callback, *args, **kwargs)
 
-    def call_method_repeatedly(self, _interval: float, callback: Union[Callable, str], *args, **kwargs) -> Any:
+    def call_method_repeatedly(self, _interval: float, callback: Callable | str, *args, **kwargs) -> Any:
         """ implement repeated callback - repeating test calls are done by the UI-specific framework. """
         # not needed by unit tests: return self.call_method(callback, *args, **kwargs)
 
@@ -82,6 +83,7 @@ class TestMainAppHelpAndTourBaseMethods:
         assert app_test.displayed_help_id == help_id
         assert 'self' in help_vars
         assert help_vars['self'] is help_target
+        # noinspection PyUnresolvedReferences
         assert app_test.help_layout.targeted_widget is help_target
         assert app_test.ensure_top_most_z_index_called == 1
 
@@ -89,6 +91,7 @@ class TestMainAppHelpAndTourBaseMethods:
         app_test.debug_level = DEBUG_LEVEL_ENABLED
         app_test.help_layout.tip_text = ''
         assert app_test.help_display(help_id, help_vars, help_target, must_have=True)
+        # noinspection PyUnresolvedReferences
         assert app_test.help_layout.tip_text
 
         app_test.debug_level = DEBUG_LEVEL_DISABLED
@@ -179,6 +182,7 @@ class TestMainAppHelpAndTourBaseMethods:
 
     def test_key_press_from_framework(self, app_test):
         assert not app_test.key_press_from_framework('Ctrl', 'x_')
+        # noinspection PyTypeChecker
         app_test.tour_layout = object()
         assert app_test.key_press_from_framework('Shift', '_z')
 
@@ -190,7 +194,7 @@ class TestMainAppHelpAndTourBaseMethods:
 
         assert not app_test.tour_overlay_class
 
-        class _TourOverlayLayout:
+        class _TourOverlayLayout(TourLayout):
             def __init__(self, *args, **kwargs):
                 self.init_call_args = (args, kwargs)
                 self.running = True
@@ -200,11 +204,13 @@ class TestMainAppHelpAndTourBaseMethods:
                 """ stop tour method - called by starting tour on prev_layout """
                 self.running = False
 
+        # noinspection PyTypeChecker
         app_test.tour_overlay_class = _TourOverlayLayout
         app_test.tour_layout = prev_layout = _TourOverlayLayout()
 
         assert app_test.start_app_tour()
         assert prev_layout.running is False
+        # noinspection PyUnresolvedReferences
         assert app_test.tour_layout.running is True
 
     def test_widget_tourable_children_page_ids(self, app_test):
@@ -365,7 +371,7 @@ class TestFlowHelp:
         assert app_test.on_flow_popup_close("", {})
 
 
-class TourTestLayout:
+class TourTestLayout(TourLayout):
     """ fake tour overlay layout for testing """
     def __init__(self):
         class _PlaceholderWid:
@@ -389,6 +395,9 @@ class TourTestLayout:
     def setup_app_flow(self):
         """ setup page method """
         # not needed by unit tests: self.setup_app_flow_called += 1
+
+    def stop_tour(self) -> None:
+        """ stop tour method - not needed by unit tests """
 
 
 @pytest.fixture
@@ -710,6 +719,7 @@ class TestTourBase:
 
         app_tour.setup_explained_widget()
 
+        # noinspection PyUnresolvedReferences
         assert app_tour.layout.explained_widget is app_tour.layout.explained_placeholder
 
     def test_setup_explained_widget_not_found(self, app_tour):
@@ -730,6 +740,7 @@ class TestTourBase:
 
         assert app_tour.layout.explained_widget is main_app.help_activator
 
+    # noinspection PyUnresolvedReferences
     def test_setup_layout(self, app_tour):
         app_tour.page_ids = ['page_id1', 'page_id2', 'page_id3']
         app_tour.page_idx = 1
@@ -777,6 +788,7 @@ class TestTourBase:
         tt = "tip txt"
         app_tour.page_data['tip_text'] = tt
         app_tour.setup_texts()
+        # noinspection PyUnresolvedReferences
         assert app_tour.layout.tip_text == tt
 
     def test_setup_texts_tip_via_id(self, app_tour):
@@ -787,6 +799,7 @@ class TestTourBase:
             children = []
         app_tour.main_app.framework_win = _Win()
         app_tour.setup_texts()
+        # noinspection PyUnresolvedReferences
         assert app_tour.layout.tip_text == ""
 
     def test_setup_texts_title(self, app_tour):
@@ -799,6 +812,7 @@ class TestTourBase:
         app_tour.top_popup = pu = MagicMock()
         app_tour.page_data['title_text'] = "{root}"
         app_tour.setup_texts()
+        # noinspection PyStringConversionWithoutDunderMethod
         assert app_tour.layout.title_text == str(pu)
 
     def test_start(self, app_tour):

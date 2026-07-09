@@ -2,8 +2,10 @@
 app tour base classes
 ---------------------
 """
+from __future__ import annotations
+from abc import ABC, abstractmethod
 from copy import deepcopy
-from typing import Any, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 from ae.dynamicod import try_eval                                                                       # type: ignore
 from ae.i18n import get_f_string, get_text                                                              # type: ignore
@@ -13,6 +15,22 @@ from .utils import (
     ExplainedMatcherType,
     flow_action, id_of_flow, id_of_tour_help, tour_help_translation, translation_short_help_id,
     update_tap_kwargs, widget_page_id)
+
+if TYPE_CHECKING:
+    from .app import MainAppBase
+
+
+# pylint: disable=too-few-public-methods
+class TourLayout(ABC):
+    """ abstract tour overlay layout class. """
+    explained_widget: Any
+    ids: Any                    # widget ids in/of the tour overlay layout
+    page_updated: Any
+    title_text: str
+
+    @abstractmethod
+    def stop_tour(self) -> None:
+        """ implemented by the concrete GUI-framework."""
 
 
 class TourBase:                 # pylint: disable=too-many-instance-attributes,too-many-public-methods
@@ -28,16 +46,16 @@ class TourBase:                 # pylint: disable=too-many-instance-attributes,t
         super().__init_subclass__(**kwargs)
         REGISTERED_TOURS[cls.__name__] = cls
 
-    # noinspection PyUnresolvedReferences
-    def __init__(self, main_app: 'MainAppBase'):                    # type: ignore # noqa: F821
+    def __init__(self, main_app: MainAppBase):
         super().__init__()
+        # noinspection PyStringConversionWithoutDunderMethod
         main_app.vpo(f"TourBase.__init__(): tour overlay={main_app.tour_layout}")
         self._auto_switch_page_request = None
         self._delayed_setup_layout_call = None
         self._initial_page_data = None
         self._saved_app_states: dict[str, Any] = {}
 
-        self.auto_switch_pages: Union[bool, int] = False
+        self.auto_switch_pages: bool | int = False
         """ enable/disable automatic switch of tour pages.
 
         set to `True`, `1` or `-1` to automatically switch tour pages; `True` and `1` will switch to the next page
@@ -74,7 +92,7 @@ class TourBase:                 # pylint: disable=too-many-instance-attributes,t
         * `tour_exit_delay`: seconds between tour.stop() and the on_tour_exit main app event (def=TOUR_EXIT_DELAY_DEF).
         """
 
-        self.pages_explained_matchers: dict[str, Union[ExplainedMatcherType, tuple[ExplainedMatcherType, ...]]] = {}
+        self.pages_explained_matchers: dict[str, ExplainedMatcherType | tuple[ExplainedMatcherType, ...]] = {}
         """ matchers (specified as callable or id-string) to determine the explained widget(s) of each tour page.
 
         each key of this dict is a tour page id (for which the explained widget(s) will be determined).
@@ -94,13 +112,14 @@ class TourBase:                 # pylint: disable=too-many-instance-attributes,t
         self.page_ids: list[str] = []
         """ list of tour page ids, either initialized via this class attribute or dynamically. """
 
-        self.page_idx: int = 0                      #: index of the current tour page (in :attr:`.page_ids`)
-        self.last_page_idx: Optional[int] = None    #: last tour page index (`None` on tour start)
+        self.page_idx: int = 0                          #: index of the current tour page (in :attr:`.page_ids`)
+        self.last_page_idx: int | None = None           #: last tour page index (`None` on tour start)
 
-        self.main_app = main_app                    #: shortcut to main app instance
-        self.layout = main_app.tour_layout          #: tour overlay layout instance
+        self.main_app = main_app                        #: shortcut to main app instance
+        assert main_app.tour_layout, f"TourBase.main_app {main_app} does not have a tour_layout"
+        self.layout: TourLayout = main_app.tour_layout  #: tour overlay layout instance
 
-        self.top_popup = None                       #: top most popup widget (in an app tour simulation)
+        self.top_popup = None                           #: top most popup widget (in an app tour simulation)
 
         self.backup_app_states()
 
@@ -127,7 +146,7 @@ class TourBase:                 # pylint: disable=too-many-instance-attributes,t
             self._delayed_setup_layout_call = None
 
     @property
-    def last_page_id(self) -> Optional[str]:
+    def last_page_id(self) -> str | None:
         """ determine the last displayed tour page id. """
         return None if self.last_page_idx is None else self.page_ids[self.last_page_idx]
 
@@ -137,7 +156,8 @@ class TourBase:                 # pylint: disable=too-many-instance-attributes,t
         page_cnt = len(self.page_ids)
         assert 0 <= page_idx < page_cnt, f"page_idx ({page_idx}) has to be equal or greater zero and below {page_cnt}"
         page_id = self.page_ids[page_idx]
-        if self._initial_page_data is None:     # reset page data to tour class default: dict(help_vars={}, ...)
+        page_data: dict[str, Any]                       # type: ignore
+        if self._initial_page_data is None:             # reset page data to tour class default: dict(help_vars={}, ...)
             self._initial_page_data = self.page_data
             page_data = deepcopy(self.page_data)
         else:
@@ -162,9 +182,9 @@ class TourBase:                 # pylint: disable=too-many-instance-attributes,t
 
         ids = self.page_ids
         assert self.page_idx + 1 < len(ids), f"TourBase.next_page missing {self.__class__.__name__}:{self.page_idx + 1}"
-        self.last_page_idx = self.page_idx
+        self.last_page_idx = last_page_idx = self.page_idx
         self.page_idx += 1
-        self.main_app.vpo(f"TourBase.next_page #{self.page_idx} id={ids[self.last_page_idx]}->{ids[self.page_idx]}")
+        self.main_app.vpo(f"TourBase.next_page #{self.page_idx} id={ids[last_page_idx]}->{ids[self.page_idx]}")
 
         self.setup_app_flow()
 
@@ -174,9 +194,9 @@ class TourBase:                 # pylint: disable=too-many-instance-attributes,t
 
         ids = self.page_ids
         assert self.page_idx > 0, f"TourBase.prev_page wrong/missing page {self.__class__.__name__}:{self.page_idx - 1}"
-        self.last_page_idx = self.page_idx
+        self.last_page_idx = last_page_idx = self.page_idx
         self.page_idx -= 1
-        self.main_app.vpo(f"TourBase.prev_page #{self.page_idx} id={ids[self.last_page_idx]}->{ids[self.page_idx]}")
+        self.main_app.vpo(f"TourBase.prev_page #{self.page_idx} id={ids[last_page_idx]}->{ids[self.page_idx]}")
 
         self.setup_app_flow()
 
@@ -236,12 +256,14 @@ class TourBase:                 # pylint: disable=too-many-instance-attributes,t
                         matcher = lambda _w: widget_page_id(_w) == match_str            # noqa: E731
                 else:
                     match_str = ""
+                # noinspection PyTypeChecker
                 wid = main_app.find_widget(matcher)
                 if not wid and match_str:
                     wid = main_app.widget_by_id(match_str)
                 if wid:
                     widgets.append(wid)
                 else:
+                    # noinspection PyStringConversionWithoutDunderMethod
                     main_app.vpo(f"{self.__class__.__name__}/{page_id}: no widget from matcher {match_str or matcher}")
             if len(widgets) > 1:
                 exp_wid = layout.explained_placeholder
@@ -394,8 +416,7 @@ _OPEN_USER_PREFERENCES_FLOW_ID = id_of_flow('open', 'user_preferences')
 
 class OnboardingTour(TourBase):
     """ onboarding tour for first app start. """
-    # noinspection PyUnresolvedReferences
-    def __init__(self, main_app: 'MainAppBase'):                    # type: ignore # noqa: F821
+    def __init__(self, main_app: MainAppBase):
         """ count and persistently store in config variable, the onboarding tour starts since app installation. """
         started = main_app.get_variable('onboarding_tour_started', default_value=0) + 1
         # finally, :meth:`~ae.gui.app.MainAppBase.register_user` disables automatic tour start on app start
@@ -450,8 +471,7 @@ class OnboardingTour(TourBase):
 
 class UserPreferencesTour(TourDropdownFromButton):
     """ user preferences menu tour. """
-    # noinspection PyUnresolvedReferences
-    def __init__(self, main_app: 'MainAppBase'):                    # type: ignore # noqa: F821
+    def __init__(self, main_app: MainAppBase):
         super().__init__(main_app)
 
         self.auto_switch_pages = 1

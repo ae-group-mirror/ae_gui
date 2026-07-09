@@ -696,8 +696,7 @@ that got returned by :meth:`~ae.gui.app.MainAppBase.init_app`.
     `Kivy framework <https://kivy.org/>`_.
 
 
-TODO:
-implement OS-independent detection of dark/light screen mode and automatic notification on day/night mode switch.
+TODO: implement OS-independent detection of dark/light screen mode and automatic notification on day/night mode switch.
 - see https://github.com/albertosottile/darkdetect for macOS, MSWindows and Ubuntu
 - see https://github.com/kvdroid/Kvdroid/blob/master/kvdroid/tools/darkmode.py for Android
 
@@ -707,7 +706,7 @@ from ae.i18n import register_package_translations                               
 from .utils import register_package_images, register_package_sounds
 
 
-__version__ = '0.3.117'
+__version__ = '0.3.118'
 
 
 register_package_images()

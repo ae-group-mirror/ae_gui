@@ -4,8 +4,9 @@ GUI app constants and helper functions
 """
 import re
 
+from collections.abc import Callable
 from math import cos, sin, sqrt
-from typing import Any, Callable, Optional, Type, Union
+from typing import Any
 
 from ae.base import NAME_PARTS_SEP, norm_path, os_path_dirname, os_path_join, snake_to_camel            # type: ignore
 from ae.system import os_platform, stack_var                                                            # type: ignore
@@ -29,10 +30,10 @@ COLOR_WHITE = [0.999, 0.996, 0.993, 1.0]        #: white ink
 RELIEF_ANGLE_BEG = 69                           #: beginning angle for ellipse drawings via :func:`relief_colors`
 RELIEF_ANGLE_END = 249                          #: ending angle for ellipse drawings via :func:`relief_colors`
 
-THEME_DARK_BACKGROUND_COLOR = COLOR_BLACK       #: dark theme background color in rgba(0.0 ... 1.0)
-THEME_DARK_FONT_COLOR = COLOR_WHITE             #: dark theme font color in rgba(0.0 ... 1.0)
-THEME_LIGHT_BACKGROUND_COLOR = COLOR_WHITE      #: light theme background color in rgba(0.0 ... 1.0)
-THEME_LIGHT_FONT_COLOR = COLOR_BLACK            #: light theme font color in rgba(0.0 ... 1.0)
+THEME_DARK_BACKGROUND_COLOR = COLOR_BLACK       #: dark theme background color in rgba(0.0...1.0)
+THEME_DARK_FONT_COLOR = COLOR_WHITE             #: dark theme font color in rgba(0.0...1.0)
+THEME_LIGHT_BACKGROUND_COLOR = COLOR_WHITE      #: light theme background color in rgba(0.0...1.0)
+THEME_LIGHT_FONT_COLOR = COLOR_BLACK            #: light theme font color in rgba(0.0...1.0)
 
 THEME_SECTION_PREFIX = 'aeTheme_'               #: config-files section name prefix for to store app theme vars
 THEME_VARIABLE_PREFIX = 'MUSASV_'               #: mangle app state var names to not be interpreted as user-specific
@@ -52,7 +53,7 @@ TOUR_EXIT_DELAY_DEF = 0.45                                          #: default v
 PORTIONS_IMAGES = FilesRegister()                                   #: app image files register
 PORTIONS_SOUNDS = FilesRegister()                                   #: app audio/sound files register
 
-REGISTERED_TOURS: dict[str, Type] = {}                              #: map(name: class) of all registered tour classes
+REGISTERED_TOURS: dict[str, type] = {}                              #: map(name: class) of all registered tour classes
 
 
 AnchorSpecType = tuple[float, float, str]                           #: (see return value of :func:`anchor_spec`)
@@ -60,20 +61,20 @@ AnchorSpecType = tuple[float, float, str]                           #: (see retu
 AppStatesType = dict[str, Any]                                      #: app state config variable type
 
 # pylint: disable=invalid-name
-ColorRGB = Union[tuple[float, float, float], list[float]]           #: color red, green and blue parts
+ColorRGB = tuple[float, float, float] | list[float]                 #: color red, green and blue parts
 # pylint: disable=invalid-name
-ColorRGBA = Union[tuple[float, float, float, float], list[float]]   #: ink is rgb color and alpha
-ColorOrInk = Union[ColorRGB, ColorRGBA]                             #: color or ink type
+ColorRGBA = tuple[float, float, float, float] | list[float]         #: ink is rgb color and alpha
+ColorOrInk = ColorRGB | ColorRGBA                                   #: color or ink type
 
 EventKwargsType = dict[str, Any]                                    #: change flow event kwargs type
 
-ExplainedMatcherType = Union[Callable[[Any], bool], str]            #: single explained widget matcher type
+ExplainedMatcherType = Callable[[Any], bool] | str                  #: single explained widget matcher type
 
 HelpVarsType = dict[str, Any]                                       #: help context variables for help text rendering
 
-PopupsToCloseType = Union[int, tuple]                               #: popups to close on button-press/flow-change
+PopupsToCloseType = int | tuple                                     #: popups to close on button-press/flow-change
 
-ReliefColors = Union[tuple[ColorRGB, ColorRGB], tuple]              #: tuple of top/bottom relief colors or empty tuple
+ReliefColors = tuple[ColorRGB, ColorRGB] | tuple                    #: tuple of top/bottom relief colors or empty tuple
 
 
 def anchor_layout_x(anchor_spe: AnchorSpecType, layout_width: float, win_width: float) -> float:
@@ -446,7 +447,7 @@ def flow_popup_class_name(flow_id: str) -> str:
     return flow_class_name(flow_id, 'Popup')
 
 
-def help_id_tour_class(help_id: str) -> Optional[Any]:
+def help_id_tour_class(help_id: str) -> Any | None:
     """ determine the tour class if passed help id has attached tour pages.
 
     :param help_id:         help id to determine the tour class from.
@@ -537,6 +538,7 @@ def merge_popups_to_close(tap_kwargs: EventKwargsType, add_kwargs: EventKwargsTy
     if isinstance(tap_pups, int) and isinstance(add_pups, int):
         popups_to_close: PopupsToCloseType = tap_pups + add_pups
     else:
+        # noinspection PyStringConversionWithoutDunderMethod
         assert isinstance(tap_pups, tuple) and isinstance(add_pups, tuple), \
             f"type mismatch for popups_to_close values: {tap_pups=} {add_pups=} (expected both as {PopupsToCloseType})"
         popups_to_close = ()
@@ -553,12 +555,13 @@ def mix_colors(*colors: ColorOrInk) -> ColorOrInk:
     :param colors:              colors or inks to mix.
     :return:                    mixed color or ink.
     """
+    # noinspection PyUnresolvedReferences
     return [sum(_) / len(_) for _ in zip(*colors)]
 
 
 def popup_event_kwargs(message: str, title: str,
-                       confirm_flow_id: Optional[str] = None, confirm_kwargs: Optional[EventKwargsType] = None,
-                       confirm_text: Optional[str] = None, **popup_kwargs) -> EventKwargsType:
+                       confirm_flow_id: str | None = None, confirm_kwargs: EventKwargsType | None = None,
+                       confirm_text: str | None = None, **popup_kwargs) -> EventKwargsType:
     """ type-check and bundle args of the MainAppClass.show_*() methods into a single event kwargs dict for a FlowPopup.
 
     :param message:         message string to display in the popup.
@@ -594,7 +597,8 @@ def register_package_images():
     package resources and are listed in the :data:`~ae.system.SKIPPED_MODULES`, like e.g., :mod:`ae.gui.app` and
     :mod:`ae.gui.utils` (passing empty string '' to overwrite the default skip list).
     """
-    package_path = os_path_dirname(norm_path(stack_var('__file__', '')))
+    file_name = stack_var('__file__', '') or ""
+    package_path = os_path_dirname(norm_path(file_name))
     search_path = os_path_join(package_path, 'img/**')
     PORTIONS_IMAGES.add_paths(search_path)
 
@@ -608,12 +612,13 @@ def register_package_sounds():
     :paramref:`~ae.system.stack_var.skip_modules` parameter to not skip ae portions that are providing
     package resources and are listed in the :data:`~ae.system.SKIPPED_MODULES`.
     """
-    package_path = os_path_dirname(norm_path(stack_var('__file__', '')))
+    file_name = stack_var('__file__', '') or ""
+    package_path = os_path_dirname(norm_path(file_name))
     search_path = os_path_join(package_path, 'snd/**')
     PORTIONS_SOUNDS.add_paths(search_path)
 
 
-def relief_colors(color_or_ink: Optional[ColorOrInk] = None, top_factor: float = 0.6, bottom_factor: float = 0.3,
+def relief_colors(color_or_ink: ColorOrInk | None = None, top_factor: float = 0.6, bottom_factor: float = 0.3,
                   sunken: bool = False) -> ReliefColors:
     """ calculate the top-left and bottom-right colors used for square/ellipse relief effects.
 
@@ -650,7 +655,7 @@ def replace_flow_action(flow_id: str, new_action: str):
     return id_of_flow(new_action, *flow_key_split(flow_action_split(flow_id)[1]))
 
 
-def tour_help_translation(page_id: str) -> Optional[Union[str, dict[str, str]]]:
+def tour_help_translation(page_id: str) -> str | dict[str, str] | None:
     """ determine help translation for the passed page id (flow id or app state name).
 
     :param page_id:         tour page id.
@@ -660,7 +665,7 @@ def tour_help_translation(page_id: str) -> Optional[Union[str, dict[str, str]]]:
             translation_short_help_id(id_of_state_help(page_id))[0])
 
 
-def tour_id_class(tour_id: str) -> Optional[Any]:
+def tour_id_class(tour_id: str) -> Any | None:
     """ determine the tour class of the passed tour id.
 
     :param tour_id:         tour/flow id to determine tour class for.
@@ -669,7 +674,7 @@ def tour_id_class(tour_id: str) -> Optional[Any]:
     return REGISTERED_TOURS.get(flow_class_name(tour_id, 'Tour'))
 
 
-def translation_short_help_id(help_id: str) -> tuple[Optional[Union[str, dict[str, str]]], str]:
+def translation_short_help_id(help_id: str) -> tuple[str | dict[str, str] | None, str]:
     """ check if a help text exists for the passed help id.
 
     :param help_id:         help id to check if a translation/help with texts exists.
@@ -684,7 +689,7 @@ def translation_short_help_id(help_id: str) -> tuple[Optional[Union[str, dict[st
     return trans_text_or_dict, short_help_id
 
 
-def update_tap_kwargs(widget_or_kwargs: Union[EventKwargsType, Any], popup_kwargs: Optional[EventKwargsType] = None,
+def update_tap_kwargs(widget_or_kwargs: EventKwargsType | Any, popup_kwargs: EventKwargsType | None = None,
                       **tap_kwargs) -> EventKwargsType:
     """ update or simulate a widget's tap_kwargs property and return the updated dictionary (for kv rule of tap_kwargs).
 
@@ -716,7 +721,7 @@ def update_tap_kwargs(widget_or_kwargs: Union[EventKwargsType, Any], popup_kwarg
     return new_kwargs
 
 
-def widget_page_id(wid: Optional[Any]) -> str:
+def widget_page_id(wid: Any | None) -> str:
     """ determine tour page id of passed widget.
 
     :param wid:                 widget to determine tour page id from (can be None).
