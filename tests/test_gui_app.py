@@ -1,8 +1,11 @@
 """ test ae.gui.app module """
+from collections.abc import Callable
 from configparser import ConfigParser, ExtendedInterpolation
-from typing import Callable, Any, Union
+from typing import Any
 
 from unittest.mock import MagicMock, patch
+
+from ae.files import RegisteredFile
 
 from ae.gui import register_package_images
 from conftest import skip_gitlab_ci
@@ -119,11 +122,11 @@ class ImplementationOfMainApp(MainAppBase):
 
         return self.framework_app.start_event_loop, self.framework_app.stop_event_loop
 
-    def call_method_delayed(self, _delay: float, callback: Union[Callable, str], *args, **kwargs) -> Any:
+    def call_method_delayed(self, _delay: float, callback: Callable | str, *args, **kwargs) -> Any:
         """ implement delayed callback - ignoring delay arg for tests. """
         return self.call_method(callback, *args, **kwargs)
 
-    def call_method_repeatedly(self, _interval: float, callback: Union[Callable, str], *args, **kwargs) -> Any:
+    def call_method_repeatedly(self, _interval: float, callback: Callable | str, *args, **kwargs) -> Any:
         """ implement repeated callback - repeating test calls are done by the UI-specific framework. """
         return self.call_method(callback, *args, **kwargs)      # pragma: no cover
 
@@ -1144,8 +1147,14 @@ class TestOtherMainAppMethods:
         i1, im2, im3 = image_files_to_test
         register_package_images()
         app = ImplementationOfMainApp()
-        assert app.find_image(image_file_name).path
-        assert app.find_image(image_file_name).path in (norm_path(i1), norm_path(im2), norm_path(im3))
+
+        file_reg = app.find_image(image_file_name)
+        assert isinstance(file_reg, RegisteredFile)
+        assert file_reg.path
+
+        file_reg = app.find_image(image_file_name)
+        assert isinstance(file_reg, RegisteredFile)
+        assert file_reg.path in (norm_path(i1), norm_path(im2), norm_path(im3))
 
     def test_find_image_file_not_exists(self, restore_app_env):
         app = ImplementationOfMainApp()
@@ -1157,26 +1166,58 @@ class TestOtherMainAppMethods:
     def test_find_image_file_with_matcher(self, restore_app_env, image_files_to_test):
         im1, im2, im3 = image_files_to_test
         app = ImplementationOfMainApp()
-        assert app.find_image(image_file_name).path
-        assert app.find_image(image_file_name).path == norm_path(im3)
-        assert app.find_image(image_file_name, height=0.6).path == norm_path(im2)
-        assert app.find_image(image_file_name, height=1.5).path == norm_path(im2)
-        assert app.find_image(image_file_name, height=96.0).path == norm_path(im3)
-        assert app.find_image(image_file_name, light_theme=bool(1)).path == norm_path(im3)
+
+        file_reg = app.find_image(image_file_name)
+        assert isinstance(file_reg, RegisteredFile)
+        assert file_reg.path
+
+        file_reg = app.find_image(image_file_name)
+        assert isinstance(file_reg, RegisteredFile)
+        assert file_reg.path == norm_path(im3)
+
+        file_reg = app.find_image(image_file_name, height=0.6)
+        assert isinstance(file_reg, RegisteredFile)
+        assert file_reg.path == norm_path(im2)
+
+        file_reg = app.find_image(image_file_name, height=1.5)
+        assert isinstance(file_reg, RegisteredFile)
+        assert file_reg.path == norm_path(im2)
+
+        file_reg = app.find_image(image_file_name, height=96.0)
+        assert isinstance(file_reg, RegisteredFile)
+        assert file_reg.path == norm_path(im3)
+
+        file_reg = app.find_image(image_file_name, light_theme=bool(1))
+        assert isinstance(file_reg, RegisteredFile)
+        assert file_reg.path == norm_path(im3)
 
     def test_find_image_file_with_matcher_and_sorter(self, restore_app_env, image_files_to_test):
         im1, im2, im3 = image_files_to_test
         app = ImplementationOfMainApp()
-        assert app.find_image(image_file_name, height=0.6, light_theme=False).path == norm_path(im2)
-        assert app.find_image(image_file_name, height=1.5, light_theme=False).path == norm_path(im2)
 
-        assert app.find_image(image_file_name, height=3.0, light_theme=False).path == norm_path(im3)
-        assert app.find_image(image_file_name, light_theme=False).path == norm_path(im3)   # default height==32.0
+        file_reg = app.find_image(image_file_name, height=0.6, light_theme=False)
+        assert isinstance(file_reg, RegisteredFile)
+        assert file_reg.path == norm_path(im2)
 
-        assert app.image_files(image_file_name, property_matcher=lambda f: True).path in (
-            norm_path(im1), norm_path(im2), norm_path(im3))
-        assert app.image_files(image_file_name, property_matcher=lambda f: True).path in (
-            norm_path(im1), norm_path(im2), norm_path(im3))
+        file_reg = app.find_image(image_file_name, height=1.5, light_theme=False)
+        assert isinstance(file_reg, RegisteredFile)
+        assert file_reg.path == norm_path(im2)
+
+        file_reg = app.find_image(image_file_name, height=3.0, light_theme=False)
+        assert isinstance(file_reg, RegisteredFile)
+        assert file_reg.path == norm_path(im3)
+
+        file_reg = app.find_image(image_file_name, light_theme=False)
+        assert isinstance(file_reg, RegisteredFile)
+        assert file_reg.path == norm_path(im3)   # default height==32.0
+
+        file_reg = app.image_files(image_file_name, property_matcher=lambda f: True)
+        assert isinstance(file_reg, RegisteredFile)
+        assert file_reg.path in (norm_path(im1), norm_path(im2), norm_path(im3))
+
+        file_reg = app.image_files(image_file_name, property_matcher=lambda f: False)
+        assert isinstance(file_reg, RegisteredFile)
+        assert file_reg.path in (norm_path(im1), norm_path(im2), norm_path(im3))
 
     def test_find_image_file_without_image_name(self, restore_app_env):
         app = ImplementationOfMainApp()

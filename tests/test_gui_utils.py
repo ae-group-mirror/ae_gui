@@ -82,7 +82,9 @@ class TestAppHelperFunctions:
         assert kwargs['tap_kwargs']['tap_widget'] is wid
 
         assert 'popup_kwargs' in kwargs['tap_kwargs']
+        # noinspection PyUnresolvedReferences
         assert 'opener' in kwargs['tap_kwargs']['popup_kwargs']
+        # noinspection PyUnresolvedReferences
         assert kwargs['tap_kwargs']['popup_kwargs']['opener'] is wid
 
     def test_flow_action(self):
@@ -95,6 +97,7 @@ class TestAppHelperFunctions:
 
     def test_flow_class_name(self):
         assert flow_class_name(id_of_flow('a', 'b', 'c'), 'Tour') == 'BATour'
+        # noinspection SpellCheckingInspection
         assert flow_class_name(id_of_flow('abc', 'bxy', 'c'), 'HuHu') == 'BxyAbcHuHu'
         assert flow_class_name(id_of_flow('open', 'bxy', 'c'), '') == 'Bxy'
 
@@ -129,7 +132,9 @@ class TestAppHelperFunctions:
 
     def test_flow_popup_class_name(self):
         assert flow_popup_class_name(id_of_flow('a', 'b', 'c')) == 'BAPopup'
+        # noinspection SpellCheckingInspection
         assert flow_popup_class_name(id_of_flow('abc', 'bxy', 'c')) == 'BxyAbcPopup'
+        # noinspection SpellCheckingInspection
         assert flow_popup_class_name(id_of_flow('open', 'bxy', 'c')) == 'BxyPopup'
 
     def test_id_of_flow(self):
@@ -458,6 +463,7 @@ class TestTourHelperFunctions:
         assert points[4] == anchor_x
         assert points[5] == anchor_y + radius
 
+        # noinspection PyTypeChecker
         points = anchor_points(font_size, spec[:2] + ('i', ))
         assert len(points) == 6
         assert points[0] == anchor_x - radius
@@ -467,6 +473,7 @@ class TestTourHelperFunctions:
         assert points[4] == anchor_x + radius
         assert points[5] == anchor_y
 
+        # noinspection PyTypeChecker
         points = anchor_points(font_size, spec[:2] + ('l', ))
         assert len(points) == 6
         assert points[0] == anchor_x
@@ -476,6 +483,7 @@ class TestTourHelperFunctions:
         assert points[4] == anchor_x
         assert points[5] == anchor_y + radius
 
+        # noinspection PyTypeChecker
         points = anchor_points(font_size, spec[:2] + ('d', ))
         assert len(points) == 6
         assert points[0] == anchor_x - radius
