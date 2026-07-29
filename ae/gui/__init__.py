@@ -261,7 +261,7 @@ application flow
 ----------------
 
 to control the current state and user interaction flow (or context) of your application, and to persist it until the
-next app start, :class:`MainBaseApp` provides two :ref:`app-state-variables`: :attr:`~ae.gui.app.MainAppBase.flow_id`
+next app start, :class:`MainBaseApp` provides two :ref:`app-state-variables` :attr:`~ae.gui.app.MainAppBase.flow_id`
 to store the currently working flow and :attr:`~ae.gui.app.MainAppBase.flow_path` to store the history of
  entered/opened flows.
 
@@ -334,7 +334,7 @@ fired. this event can be used by the GUI framework to set the focus to the widge
 
 
 flow actions `'open'` and `'close'`
-__________________________________
+___________________________________
 
 to display an instance of a properly named popup class, initiate the change the app flow to an appropriate
 flow id (with an `'open'` flow action). in this case no change confirmation event handler is needed, because
@@ -706,7 +706,7 @@ from ae.i18n import register_package_translations                               
 from .utils import register_package_images, register_package_sounds
 
 
-__version__ = '0.3.118'
+__version__ = '0.3.119'
 
 
 register_package_images()

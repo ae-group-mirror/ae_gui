@@ -17,8 +17,8 @@ from ae.i18n import get_text, translation                                       
 APP_STATE_SECTION_NAME = 'aeAppState'           #: config section name to store app state
 APP_STATE_VERSION_VAR_NAME = 'app_state_version'  #: config variable name to store the current application state version
 
-MIN_FONT_SIZE = 15.0                            #: minimum (see :attr:`~ae.kivy.apps.FrameworkApp.min_font_size`) and
-MAX_FONT_SIZE = 99.0                            #: .. maximum font size in pixels
+MAX_FONT_SIZE = 99.0                            #: maximum font size in pixels
+MIN_FONT_SIZE = 15.0                            #: minimum (see :attr:`~ae.kivy.apps.FrameworkApp.min_font_size`)
 
 # inks for the non-colors black, gray and white (!= 0/1 to differentiate from the framework's pure black/white colors)
 COLOR_BLACK = [0.009, 0.006, 0.003, 1.0]        #: black ink
@@ -265,7 +265,7 @@ def complementary_color(color_or_ink: ColorOrInk, delta_h: float = 180.0) -> Col
 
     :return:                the complementary color or ink, as the same type as the input. note that the HSV algorithm
                             does not change any monochrom/greyscale colors; pass a zero value to the delta_h parameter
-                            to get an "opposite"-like color from a gray-scale color (see the unit tests on how
+                            to get an `opposite`-like color from a gray-scale color (see the unit tests on how
                             the RGB algorithm does behave in relation to the HSV algorithm).
     """
     if delta_h:
