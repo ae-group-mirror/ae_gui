@@ -258,10 +258,10 @@ def complementary_color(color_or_ink: ColorOrInk, delta_h: float = 180.0) -> Col
                             zero value to get the opposite color with the more efficient RGB algorithm.
                             any other value will use the HSV algorithm, which adds this value as a delta angle in
                             the HSV color circle. some harmonic delta angles are:
-                                * 30: analogous colors
-                                * 90, 180 and 270: tetradic colors 2, 3 and 4
-                                * 120 and 240: triadic color 2 and 3
-                                * 180: opposite color
+                            * 30: analogous colors
+                            * 90, 180 and 270: tetradic colors 2, 3 and 4
+                            * 120 and 240: triadic color 2 and 3
+                            * 180: opposite color
 
     :return:                the complementary color or ink, as the same type as the input. note that the HSV algorithm
                             does not change any monochrom/greyscale colors; pass a zero value to the delta_h parameter
