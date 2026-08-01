@@ -263,7 +263,7 @@ application flow
 to control the current state and user interaction flow (or context) of your application, and to persist it until the
 next app start, :class:`MainBaseApp` provides two :ref:`app-state-variables` :attr:`~ae.gui.app.MainAppBase.flow_id`
 to store the currently working flow and :attr:`~ae.gui.app.MainAppBase.flow_path` to store the history of
- entered/opened flows.
+entered/opened flows.
 
 
 app flow id and path
@@ -706,7 +706,7 @@ from ae.i18n import register_package_translations                               
 from .utils import register_package_images, register_package_sounds
 
 
-__version__ = '0.3.119'
+__version__ = '0.3.120'
 
 
 register_package_images()
