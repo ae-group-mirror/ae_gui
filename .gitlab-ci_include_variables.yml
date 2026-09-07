@@ -1,2 +1,3 @@
+
 variables:
   XDG_CONFIG_HOME: $CI_PROJECT_DIR
