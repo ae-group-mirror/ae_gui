@@ -7,4 +7,5 @@ ae_updater
 ae_dynamicod
 ae_i18n
 ae_core
+ae_literal
 ae_console

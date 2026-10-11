@@ -1,4 +1,4 @@
-# THIS FILE IS EXCLUSIVELY MAINTAINED by the project aedev.project_tpls v0.3.102
+# THIS FILE IS EXCLUSIVELY MAINTAINED by the project aedev.project_tpls v0.3.105
 """ setup of ae namespace package portion gui: helper functions and base application classes for GUI applications. """
 import pathlib
 import sys
@@ -56,6 +56,7 @@ setup_kwargs: dict[str, Any] = {
         'ae_dynamicod',
         'ae_i18n',
         'ae_core',
+        'ae_literal',
         'ae_console',
     ],
     'keywords': [
@@ -155,7 +156,7 @@ setup_kwargs: dict[str, Any] = {
     },
     'python_requires': '>=3.12',
     'url': 'https://gitlab.com/ae-group/ae_gui',
-    'version': '0.3.121',
+    'version': '0.3.122',
     'zip_safe': False,
 }
 

@@ -200,6 +200,8 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
                                     the GUI event loop.
         """
 
+    # public methods ---------------------------------------------------------------------------------------------------
+
     def app_state_keys(self) -> tuple[str, ...]:
         """ determine current config variable names/keys of the app state section :data:`APP_STATE_SECTION_NAME`.
 
@@ -215,7 +217,7 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
                 self.dpo(f"app state {key=} ignored because it is not declared as MainAppBase attribute")
         return tuple(as_keys)
 
-    def backup_config_resources(self) -> str:   # pragma: no cover
+    def backup_config_resources(self) -> str:
         """ backup config files and image/sound/translations resources to {ado}<now_str>.
 
         config files are collected from {ado}, {usr} or {cwd} (the first found file name only - see/sync-with
@@ -429,11 +431,6 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
         """
         return set(color_name for color_name in self.app_state_keys() if color_name.endswith('_ink'))
 
-    @staticmethod
-    def dpi_factor() -> float:
-        """ dpi scaling factor - override if the used GUI framework supports dpi scaling. """
-        return 1.0
-
     def close_popups(self, classes: tuple = (), count: int = -1, force: bool = False):
         """ close specified/all opened popups (starting with the foremost popup).
 
@@ -449,10 +446,15 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
         for popup in self.popups_opened(classes=classes):
             if count:
                 if force:
-                    self.framework_win.remove_widget(popup)     # pragma: no cover
+                    self.framework_win.remove_widget(popup)
                 else:
                     popup.close()
                 count -= 1
+
+    @staticmethod
+    def dpi_factor() -> float:
+        """ dpi scaling factor - override if the used GUI framework supports dpi scaling. """
+        return 1.0
 
     def find_image(self, image_name: str, height: float = 32.0, light_theme: bool = True) -> RegisteredFile | None:
         """ find the best fitting image in the registered img folders.
@@ -579,8 +581,10 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
         :param help_id:         help id to show help text for.
         :param help_vars:       variables used in the conversion of the f-string expression to a string.
                                 optional items passed to the help text formatter:
+
                                 * `count`: optional number used to render a pluralized help text.
                                 * `self`: target widget to show help text for.
+
         :param key_suffix:      suffix to the key used if the translation is a dict.
         :param must_have:       pass True to display error help text and console output if no help text exists.
         :return:                boolean True if help text got found and displayed.
@@ -773,7 +777,7 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
         current_version = app_states.get(APP_STATE_VERSION_VAR_NAME, 0)
         if current_version:
             upgrade_version = self.upgraded_config_app_state_version()
-            if upgrade_version > current_version:   # pragma: no cover
+            if upgrade_version > current_version:
                 for from_version in range(current_version, upgrade_version):
                     self.call_method('on_app_state_version_upgrade', from_version)
                 self.change_app_state(APP_STATE_VERSION_VAR_NAME, upgrade_version, send_event=False, old_name=UNSET)
@@ -872,7 +876,7 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
             val = self.get_variable('unselected_item_ink', APP_STATE_SECTION_NAME, self.unselected_ink)
             self.change_app_state('unselected_ink', val, send_event=False, old_name='unselected_item_ink')
 
-        elif from_version == 5:     # pragma: no cover
+        elif from_version == 5:
             # until V6 release/for V5: not in app.app_states, but available as main_app attributes
             self.change_app_state('cancel_ink', self.cancel_ink, send_event=False, old_name=UNSET)
             self.change_app_state('confirm_ink', self.confirm_ink, send_event=False, old_name=UNSET)
@@ -1058,8 +1062,10 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
                                 kwarg to the method :meth:`ConsoleApp.register_user`.
         :param event_kwargs:    event kwargs, plus optionally the following kwargs which will be extracted from the
                                 event kwargs and passed onto the :meth:`ae.console.ConsoleApp.register_user` method:
+
                                 * :paramref:`~ae.console.ConsoleApp.register_user.reset_cfg_vars`
                                 * :paramref:`~ae.console.ConsoleApp.register_user.set_as_default`
+
         :return:                True if user got registered else False.
         """
         if not user_id:
@@ -1141,17 +1147,22 @@ class MainAppBase(ConsoleApp, ABC):     # pylint: disable=too-many-instance-attr
 
         return popups
 
-    def register_user(self, **kwargs) -> bool:          # pragma: no cover # pylint: disable=arguments-differ
-        """ on user registration always disable app onboarding tours on app start
+    def register_user(self, new_user_id: str = "", reset_cfg_vars: bool = False, set_as_default: bool = True) -> bool:
+        """ register/reset the specified or current user, creating/copying a new set of user-specific config vars.
 
-        :param kwargs:          see the :meth:`ConsoleApp.register_user` method.
-        :return:                see the :meth:`ConsoleApp.register_user` method.
+        :param new_user_id:     user id to register. if not specified, then register the current OS user (self.user_id).
+        :param reset_cfg_vars:  pass `True` to reset the user-specific-variables to the default values.
+        :param set_as_default:  pass `False` to not set the specified user id as default for the next app run/start.
+        :raises AssertionError: if the specified/current user id/name is empty, too long or contains invalid characters.
+        :return:                `True` if the specified or the current OS user id/name was not registered, else `False`.
 
         .. hint::
             also called on the tour end, after the user has entered a valid username/id in UserNameEditorPopup
             and confirmed it via the FlowButton id_of_flow('register', 'user').
+            user registration disables an app onboarding tour on next app start.
         """
-        ret = super().register_user(**kwargs)
+        ret = super().register_user(
+            new_user_id=new_user_id, reset_cfg_vars=reset_cfg_vars, set_as_default=set_as_default)
 
         var_name = 'onboarding_tour_started'
         self.set_variable(var_name + '_' + self.user_id, self.get_variable(var_name, default_value=-3))

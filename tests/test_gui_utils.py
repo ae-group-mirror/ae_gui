@@ -1,7 +1,10 @@
 """ test ae.gui.utils module """
 from math import pi, tau
-from unittest.mock import MagicMock
+from unittest.mock import patch, MagicMock
 
+import pytest
+
+from ae.base import os_path_join
 from ae.i18n import get_text
 
 from ae.gui.utils import (
@@ -15,7 +18,9 @@ from ae.gui.utils import (
     id_of_state_help, id_of_tour_help, merge_popups_to_close, mix_colors, popup_event_kwargs,
     register_package_images, register_package_sounds, relief_colors, replace_flow_action, update_tap_kwargs)
 
-from tst_constants import *
+from tst_constants import (
+    PORTIONS_IMAGES, PORTION_IMG_COUNT, PORTION_SND_COUNT, PORTIONS_SOUNDS, TST_IMG_COUNT, TST_SND_COUNT,
+    tst_ado_image_files, tst_ado_sound_files, tst_tmp_path)
 
 
 class TestAppHelperFunctions:
@@ -178,17 +183,16 @@ class TestAppHelperFunctions:
             'popup_kwargs': {'message': "msg", 'title': "tit", 'confirm_flow_id': "cfid",
                              'confirm_kwargs': {'kws': "ck"}, 'confirm_text': get_text("confirm")}}
 
-    def test_register_package_images(self, image_files_to_test):
-        assert len(PORTIONS_IMAGES) == PORTION_IMG_COUNT + TST_IMG_COUNT
-        assert TST_IMG_COUNT != len(image_files_to_test)
-        register_package_images()
+    def test_register_package_images(self, tst_ado_image_files, tst_tmp_path):
+        assert len(PORTIONS_IMAGES) == PORTION_IMG_COUNT
+        with patch('ae.gui.utils.stack_var', return_value=os_path_join(tst_tmp_path, 'any_file_or_dir_name')):
+            register_package_images()
         assert len(PORTIONS_IMAGES) == PORTION_IMG_COUNT + TST_IMG_COUNT
 
-    def test_register_package_sounds(self, sound_files_to_test):
-        old_count = len(PORTIONS_SOUNDS)
-        assert PORTION_SND_COUNT == old_count
-        assert TST_SND_COUNT == len(sound_files_to_test)
-        register_package_sounds()
+    def test_register_package_sounds(self, tst_ado_sound_files, tst_tmp_path):
+        assert len(PORTIONS_SOUNDS) == PORTION_SND_COUNT
+        with patch('ae.gui.utils.stack_var', return_value=os_path_join(tst_tmp_path, 'any_file_or_dir_name')):
+            register_package_sounds()
         assert len(PORTIONS_SOUNDS) == PORTION_SND_COUNT + TST_SND_COUNT
 
     def test_replace_flow_action(self):
