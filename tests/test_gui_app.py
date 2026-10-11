@@ -1,28 +1,34 @@
 """ test ae.gui.app module """
+import os
+import shutil
 from collections.abc import Callable
 from configparser import ConfigParser, ExtendedInterpolation
 from typing import Any
-
 from unittest.mock import MagicMock, patch
 
-from ae.files import RegisteredFile
+import pytest
 
-from ae.gui import register_package_images
 from conftest import skip_gitlab_ci
 
-from ae.base import INI_EXT, UNSET, norm_path
+from ae.base import (
+    INI_EXT, UNSET,
+    norm_path, os_path_basename, os_path_isdir, os_path_isfile, os_path_join, os_path_splitext, write_file,
+    os_path_relpath)
 from ae.system import os_user_name
+from ae.files import RegisteredFile
 from ae.paths import normalize, FilesRegister
-from ae.core import DEBUG_LEVELS, DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED
-from ae.console import USER_NAME_MAX_LEN
 from ae.updater import MOVES_SRC_FOLDER_NAME
+from ae.core import DEBUG_LEVELS, DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED
+from ae.literal import Literal
+from ae.console import USER_NAME_MAX_LEN
 
+from tst_constants import (
+    PORTION_IMG_COUNT, PORTION_SND_COUNT, TST_IMG_COUNT,
+    tst_ado_image_files, tst_ado_sound_files, tst_image_name, tst_sound_name, tst_tmp_path)
 from ae.gui.utils import (
     APP_STATE_SECTION_NAME, APP_STATE_VERSION_VAR_NAME, MAX_FONT_SIZE, MIN_FONT_SIZE,
-    flow_key, id_of_flow, replace_flow_action)
+    flow_key, id_of_flow, register_package_images, register_package_sounds, replace_flow_action)
 from ae.gui.app import MainAppBase
-
-from tst_constants import *
 
 
 VER_VAR = APP_STATE_VERSION_VAR_NAME        # == 'app_state_version'
@@ -40,13 +46,11 @@ def _create_ini_file(fn):
 
 
 @pytest.fixture
-def ini_file(restore_app_env):
+def ini_file(restore_app_env, tst_tmp_path):
     """ provide a test config file """
-    fn = "tests/tst" + INI_EXT
-    _create_ini_file(fn)
-    yield fn
-    if os.path.exists(fn):      # some exception/error-check tests need to delete the INI
-        os.remove(fn)
+    ini_file_path = os_path_join(tst_tmp_path, "tst" + INI_EXT)
+    _create_ini_file(ini_file_path)
+    yield ini_file_path
 
 
 class FrameworkApp:
@@ -128,11 +132,11 @@ class ImplementationOfMainApp(MainAppBase):
 
     def call_method_repeatedly(self, _interval: float, callback: Callable | str, *args, **kwargs) -> Any:
         """ implement repeated callback - repeating test calls are done by the UI-specific framework. """
-        return self.call_method(callback, *args, **kwargs)      # pragma: no cover
+        return self.call_method(callback, *args, **kwargs)
 
     def ensure_top_most_z_index(self, _widget: Any):
         """ MainAppBase abstract method implementation """
-        self.ensure_top_most_z_index_called += 1                # pragma: no cover
+        self.ensure_top_most_z_index_called += 1
 
     def help_activation_toggle(self):
         """ button tapped event handler to switch help mode between active and inactive (also inactivating tour). """
@@ -219,7 +223,7 @@ class TestProperties:
 
 
 class TestCallbacks:
-    def test_setup_app_states(self, ini_file, restore_app_env):
+    def test_setup_app_states(self, ini_file):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
         assert app.setup_state_called
 
@@ -288,6 +292,7 @@ class TestCallbacks:
     def test_on_app_state_version_upgrade(self, restore_app_env):
         app = ImplementationOfMainApp()
         app.on_app_state_version_upgrade(4)
+        app.on_app_state_version_upgrade(5)
 
     def test_on_debug_level_change(self, restore_app_env):
         app = ImplementationOfMainApp()
@@ -481,7 +486,7 @@ class TestCallbacks:
 
 
 class TestAppState:
-    def test_app_state_keys(self, ini_file, restore_app_env):
+    def test_app_state_keys(self, ini_file):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
         keys = app.app_state_keys()
         assert isinstance(keys, tuple)
@@ -490,7 +495,7 @@ class TestAppState:
         assert VER_VAR in keys
         assert TST_VAR in keys
 
-    def test_app_state_keys_undef_var(self, ini_file, restore_app_env):
+    def test_app_state_keys_undef_var(self, ini_file):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ), debug_level=DEBUG_LEVEL_ENABLED)
         tst_var = "undefined_tst_var"
         assert not hasattr(app, tst_var)
@@ -500,7 +505,7 @@ class TestAppState:
         assert VER_VAR in app.app_state_keys()
         assert TST_VAR in app.app_state_keys()
 
-    def test_app_state_upgrade_config_moved_or_not_exists(self, ini_file, restore_app_env):
+    def test_app_state_upgrade_config_moved_or_not_exists(self, ini_file):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
         assert app._main_cfg_fnam == norm_path(ini_file)
 
@@ -508,10 +513,10 @@ class TestAppState:
         assert app.app_state_version_upgrade_last_version == -1
 
     @skip_gitlab_ci  # failing on GitLab CI because app_path='/usr/local/bin' != cwd_path='/builds/ae-group/ae_gui'
-    def test_app_state_upgrade_from_bundled_config(self, ini_file, restore_app_env):
+    def test_app_state_upgrade_from_bundled_config(self, ini_file):
         global VER_INI_VAL
         old_val = VER_INI_VAL
-        bundled_ini = os.path.join(MOVES_SRC_FOLDER_NAME, os.path.basename(ini_file))
+        bundled_ini = os_path_join(MOVES_SRC_FOLDER_NAME, os_path_basename(ini_file))
         try:
             VER_INI_VAL = VER_SET_VAL
             os.mkdir(MOVES_SRC_FOLDER_NAME)
@@ -519,19 +524,19 @@ class TestAppState:
 
             app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
             old_app_name = app.app_name
-            app.app_name = os.path.splitext(os.path.basename(bundled_ini))[0]
+            app.app_name = os_path_splitext(os_path_basename(bundled_ini))[0]
             app.load_app_states()
             app.app_name = old_app_name
             assert app.app_state_version_upgrade_call_counter == VER_SET_VAL - old_val
             assert app.app_state_version_upgrade_last_version == VER_SET_VAL - 1
         finally:
-            if os.path.exists(bundled_ini):
+            if os_path_isfile(bundled_ini):
                 os.remove(bundled_ini)
-            if os.path.exists(MOVES_SRC_FOLDER_NAME):
+            if os_path_isdir(MOVES_SRC_FOLDER_NAME):
                 os.rmdir(MOVES_SRC_FOLDER_NAME)
             VER_INI_VAL = old_val
 
-    def test_app_state_version(self, ini_file, restore_app_env):
+    def test_app_state_version(self, ini_file):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
         assert app.get_variable(VER_VAR, section=APP_STATE_SECTION_NAME) == VER_INI_VAL
         assert app.app_state_version == VER_INI_VAL
@@ -544,7 +549,17 @@ class TestAppState:
         assert app.app_state_version == VER_SET_VAL + 1
         assert app.get_variable(VER_VAR, section=APP_STATE_SECTION_NAME) == VER_SET_VAL + 1
 
-    def test_change_app_state(self, ini_file, restore_app_env):
+    def test_app_state_version_upgrade(self, ini_file):
+        ver = VER_INI_VAL + 1
+        with (patch('ae.gui.app.MainAppBase.upgraded_config_app_state_version', return_value=ver),
+              patch('ae.gui.app.MainAppBase.call_method') as mock_call_method,
+              patch('ae.gui.app.MainAppBase.change_app_state') as mock_change_app_state):
+            ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
+
+        mock_call_method.assert_any_call('on_app_state_version_upgrade', VER_INI_VAL)
+        mock_change_app_state.assert_any_call(APP_STATE_VERSION_VAR_NAME, ver, send_event=False, old_name=UNSET)
+
+    def test_change_app_state(self, ini_file):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
         assert app.save_app_states() == ""
         assert app.get_variable(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
@@ -570,11 +585,12 @@ class TestAppState:
         assert app.save_app_states() == ""
         assert app.get_variable(TST_VAR, section=APP_STATE_SECTION_NAME) == chg_val
 
-    def test_load_app_states(self, ini_file, restore_app_env):
+    def test_load_app_states(self, ini_file):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
         assert app.get_variable(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
 
         app.load_app_states()
+
         assert getattr(app, TST_VAR) == TST_VAL
         assert getattr(app.framework_app, 'app_state_' + VER_VAR) == VER_INI_VAL
         assert all(k in app.framework_app.app_states.keys() and app.framework_app.app_states[k] == v
@@ -582,40 +598,37 @@ class TestAppState:
         assert all(k in app.retrieve_app_states().keys() and app.retrieve_app_states()[k] == v
                    for k, v in TST_DICT.items())
 
-    def test_load_app_states_debug_type_warning(self, ini_file, restore_app_env):
+    def test_load_app_states_class_attribute_init(self, ini_file):
+        assert hasattr(ImplementationOfMainApp, TST_VAR)    # test correct class attribute init
+        assert getattr(ImplementationOfMainApp, TST_VAR) == ""
+
+    def test_load_app_states_debug_type_warning(self, ini_file):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ), debug_level=DEBUG_LEVEL_ENABLED)
+        setattr(app, TST_VAR, -33)
 
-        try:
-            setattr(app, TST_VAR, -33)
-            app.load_app_states()
-        finally:
-            setattr(ImplementationOfMainApp, TST_VAR, "")   # restore tst_var to not break the following tests
-            setattr(app, TST_VAR, "")
+        app.load_app_states()
 
-    def test_load_app_states_debug_attr_exist_warning(self, ini_file, restore_app_env):
+    def test_load_app_states_debug_attr_exist_warning(self, ini_file, monkeypatch):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ), debug_level=DEBUG_LEVEL_ENABLED)
-        try:
-            delattr(app, TST_VAR)
-            delattr(ImplementationOfMainApp, TST_VAR)
-            app.load_app_states()
-        finally:
-            setattr(ImplementationOfMainApp, TST_VAR, "")   # restore tst_var to not break the following tests
-            setattr(app, TST_VAR, "")
+        delattr(app, TST_VAR)
+        monkeypatch.delattr(ImplementationOfMainApp, TST_VAR)   # delattr(ImplementationOfMainApp, TST_VAR) with reset
 
-    def test_load_app_states_type_autocorrection(self, ini_file, restore_app_env):
+        app.load_app_states()
+
+    def test_load_app_states_type_autocorrection(self, ini_file, monkeypatch):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ), debug_level=DEBUG_LEVEL_ENABLED)
-        try:
-            value = "tst"
-            app.set_variable(TST_VAR, list(value), cfg_fnam=ini_file, section=APP_STATE_SECTION_NAME)
-            app.load_app_states()
+        assert hasattr(app, TST_VAR)
+        assert getattr(app, TST_VAR) == TST_VAL
 
-            assert type(getattr(app, TST_VAR)) is str
-            assert getattr(app, TST_VAR) == str(list(value))
-        finally:
-            setattr(ImplementationOfMainApp, TST_VAR, "")   # restore tst_var to not break the following tests
-            setattr(app, TST_VAR, "")
+        value = "tst_set_val"
+        app.set_variable(TST_VAR, list(value), cfg_fnam=ini_file, section=APP_STATE_SECTION_NAME)
 
-    def test_load_app_states_undefined_version_default(self, ini_file, restore_app_env):
+        app.load_app_states()
+
+        assert type(getattr(app, TST_VAR)) is str
+        assert getattr(app, TST_VAR) == str(list(value))
+
+    def test_load_app_states_undefined_version_default(self, ini_file):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
         fw_app = app.framework_app
         ver = getattr(app, APP_STATE_VERSION_VAR_NAME)
@@ -628,36 +641,37 @@ class TestAppState:
 
         assert getattr(app, APP_STATE_VERSION_VAR_NAME) == VER_INI_VAL
 
-    def test_retrieve_app_states(self, ini_file, restore_app_env):
+    def test_load_app_states_unset_tst_var_class_attribute(self, ini_file):
+        assert hasattr(ImplementationOfMainApp, TST_VAR)    # test correct class attribute reset from previous tests
+        assert getattr(ImplementationOfMainApp, TST_VAR) == ""
+
+    def test_retrieve_app_states(self, ini_file):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
         assert app.get_variable(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
         for k, v in TST_DICT.items():
             assert k in app.retrieve_app_states().keys()
             assert app.retrieve_app_states()[k] == v
 
-    def test_save_app_states(self, ini_file, restore_app_env):
+    def test_save_app_states(self, ini_file, monkeypatch):
         global TST_DICT
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
-        old_dict = TST_DICT.copy()
-        try:
-            assert app.get_variable(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
-            for k, v in TST_DICT.items():
-                assert k in app.retrieve_app_states().keys()
-                assert app.retrieve_app_states()[k] == v
+        assert app.get_variable(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
+        for k, v in TST_DICT.items():
+            assert k in app.retrieve_app_states().keys()
+            assert app.retrieve_app_states()[k] == v
 
-            chg_val = 'ChangedVal'
-            TST_DICT = {VER_VAR: VER_SET_VAL, TST_VAR: chg_val}
-            setattr(app, VER_VAR, VER_SET_VAL)
-            setattr(app, TST_VAR, chg_val)
-            assert app.save_app_states() == ""
-            assert app.get_variable(TST_VAR, section=APP_STATE_SECTION_NAME) == chg_val
-            for k, v in TST_DICT.items():
-                assert k in app.retrieve_app_states().keys()
-                assert app.retrieve_app_states()[k] == v
-        finally:
-            TST_DICT = old_dict
+        chg_val = 'ChangedVal'
+        monkeypatch.setitem(TST_DICT, VER_VAR, VER_SET_VAL)
+        setattr(app, VER_VAR, VER_SET_VAL)
+        monkeypatch.setitem(TST_DICT, TST_VAR, chg_val)
+        setattr(app, TST_VAR, chg_val)
+        assert app.save_app_states() == ""
+        assert app.get_variable(TST_VAR, section=APP_STATE_SECTION_NAME) == chg_val
+        for k, v in TST_DICT.items():
+            assert k in app.retrieve_app_states().keys()
+            assert app.retrieve_app_states()[k] == v
 
-    def test_save_app_states_flow_id_var(self, ini_file, restore_app_env):
+    def test_save_app_states_flow_id_var(self, ini_file):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
         assert hasattr(app, 'flow_id')
         assert not app.get_variable('flow_id')
@@ -669,7 +683,7 @@ class TestAppState:
 
         assert app.get_variable('flow_id', section=APP_STATE_SECTION_NAME) == flo_id
 
-    def test_save_app_states_flow_id_path_cleanup(self, ini_file, restore_app_env):
+    def test_save_app_states_flow_id_path_cleanup(self, ini_file):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
         flo_id = id_of_flow('nof', 'obj', 'key')    # any non-focus flow action
         app.change_app_state('flow_id', flo_id, send_event=False)
@@ -684,7 +698,7 @@ class TestAppState:
         assert app.get_variable('flow_id', section=APP_STATE_SECTION_NAME) == ''
         assert app.get_variable('flow_path', section=APP_STATE_SECTION_NAME) == [enter_id]
 
-    def test_save_app_state_key_save(self, ini_file, restore_app_env):
+    def test_save_app_state_key_save(self, ini_file):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
 
         app.save_app_states()
@@ -698,12 +712,12 @@ class TestAppState:
         assert 'debug_save' in capsys.readouterr()[0]
         app.debug_level = DEBUG_LEVEL_DISABLED
 
-    def test_save_app_states_exception(self, ini_file, restore_app_env):
+    def test_save_app_states_exception(self, ini_file):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
         os.remove(ini_file)
         assert app.save_app_states() != ""
 
-    def test_set_flow_path(self, ini_file, restore_app_env):
+    def test_set_flow_path(self, ini_file):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
         assert not app.flow_path
         assert not app.flow_path_called
@@ -713,7 +727,7 @@ class TestAppState:
         assert app.flow_path == flow_path
         assert app.flow_path_called
 
-    def test_set_font_size(self, ini_file, restore_app_env):
+    def test_set_font_size(self, ini_file):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
         assert app.font_size == MIN_FONT_SIZE
         assert not app.font_size_called
@@ -722,7 +736,7 @@ class TestAppState:
         app.change_app_state('font_size', font_size)
         assert app.font_size == font_size
 
-    def test_set_scaled_font_size(self, ini_file, restore_app_env):
+    def test_set_scaled_font_size(self, ini_file):
         cfg_parser = ConfigParser(interpolation=ExtendedInterpolation())
         setattr(cfg_parser, 'optionxform', str)
         cfg_parser.read(ini_file)
@@ -735,7 +749,7 @@ class TestAppState:
         assert app.font_size >= MIN_FONT_SIZE
         assert not app.font_size_called
 
-    def test_set_win_scaled_font_size(self, ini_file, restore_app_env):
+    def test_set_win_scaled_font_size(self, ini_file):
         cfg_parser = ConfigParser(interpolation=ExtendedInterpolation())
         setattr(cfg_parser, 'optionxform', str)
         cfg_parser.read(ini_file)
@@ -748,7 +762,7 @@ class TestAppState:
         assert app.font_size >= MIN_FONT_SIZE
         assert not app.font_size_called
 
-    def test_setup_app_states_tst_vars(self, ini_file, restore_app_env):
+    def test_setup_app_states_tst_vars(self, ini_file):
         assert ImplementationOfMainApp.tst_var == ""
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
         assert getattr(app, TST_VAR) == TST_VAL
@@ -1073,13 +1087,38 @@ class TestOtherMainAppMethods:
         app.stop_app(69)
         assert app._exit_code == 69
 
-    def test_call_method_valid_method(self, ini_file, restore_app_env):
+    def test_backup_config_resources(self, restore_app_env, tmp_path):
+        tst_dir = str(tmp_path)
+        app = ImplementationOfMainApp()
+        write_file(os_path_join(tmp_path, app.app_name + INI_EXT), "cfg file content")
+        write_file(os_path_join(tmp_path, 'img', 'to_be_backed_up.png'), "cfg file content", make_dirs=True)
+
+        with (patch('ae.gui.app.os.makedirs') as mock_make_dirs,
+              patch('ae.gui.app.copy_file') as mock_copy_file,
+              patch('ae.gui.app.copy_tree') as mock_copy_tree,
+              patch.dict('ae.paths.PATH_PLACEHOLDERS', {'cwd': tst_dir})):
+            app.backup_config_resources()
+
+        mock_make_dirs.assert_called_once()
+        mock_copy_file.assert_called_once()
+        mock_copy_tree.assert_called_once()
+
+    def test_backup_config_resources_exception(self, restore_app_env):
+        app = ImplementationOfMainApp()
+
+        with (patch('ae.gui.app.os.makedirs', side_effect=Exception),
+              patch('ae.gui.app.MainAppBase.show_message') as mock_show_message):
+            app.backup_config_resources()
+
+        mock_show_message.assert_called_once()
+
+    def test_call_method_valid_method(self, ini_file):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
         assert not app.flow_id_called
         app.call_method('on_flow_id')
         assert app.flow_id_called
 
-    def test_call_method_invalid_method(self, ini_file, restore_app_env):
+    def test_call_method_invalid_method(self, ini_file):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
         assert app.call_method('invalid_method_name') is None
 
@@ -1137,24 +1176,43 @@ class TestOtherMainAppMethods:
         popups = app.popups_opened()
         assert not popups
 
+    def test_close_popups_forced(self, restore_app_env):
+        app = ImplementationOfMainApp()
+        app.framework_win.remove_widget = lambda _p: app.framework_win.children.remove(_p)
+
+        class _Popup:
+            """ dummy popup """
+            def open(self):
+                """ popup open method """
+                app.framework_win.children.append(self)
+
+        app.open_popup(_Popup)
+
+        popups = app.popups_opened()
+        assert popups
+        app.close_popups(force=True)
+        popups = app.popups_opened()
+        assert not popups
+
     def test_dpi_factor(self, restore_app_env):
         app = ImplementationOfMainApp()
         # would need to import kivy modules (which does not work on gitlab CI): assert app.dpi_factor() == dp(1.0)
         assert isinstance(app.dpi_factor(), float)
         assert app.dpi_factor() != 0.0
 
-    def test_find_image_file(self, restore_app_env, image_files_to_test):
-        i1, im2, im3 = image_files_to_test
+    def test_find_image_file(self, restore_app_env, tst_ado_image_files, tst_tmp_path):
+        im1, im2, im3 = tst_ado_image_files
         register_package_images()
-        app = ImplementationOfMainApp()
+        with patch('ae.paths.app_docs_path', return_value=tst_tmp_path):
+            app = ImplementationOfMainApp()
 
-        file_reg = app.find_image(image_file_name)
+        file_reg = app.find_image(tst_image_name)
         assert isinstance(file_reg, RegisteredFile)
         assert file_reg.path
 
-        file_reg = app.find_image(image_file_name)
+        file_reg = app.find_image(tst_image_name)
         assert isinstance(file_reg, RegisteredFile)
-        assert file_reg.path in (norm_path(i1), norm_path(im2), norm_path(im3))
+        assert os_path_relpath(file_reg.path, tst_tmp_path) in (im1, im2, im3)
 
     def test_find_image_file_not_exists(self, restore_app_env):
         app = ImplementationOfMainApp()
@@ -1163,65 +1221,74 @@ class TestOtherMainAppMethods:
         app.image_files = FilesRegister()   # reset for coverage
         assert app.find_image("not_existing_image_file.xzy") is None
 
-    def test_find_image_file_with_matcher(self, restore_app_env, image_files_to_test):
-        im1, im2, im3 = image_files_to_test
+    def test_find_image_file_with_matcher(self, restore_app_env, tst_ado_image_files, tst_tmp_path):
+        im1, im2, im3 = tst_ado_image_files
         app = ImplementationOfMainApp()
 
-        file_reg = app.find_image(image_file_name)
+        file_reg = app.find_image(tst_image_name)
         assert isinstance(file_reg, RegisteredFile)
         assert file_reg.path
 
-        file_reg = app.find_image(image_file_name)
+        file_reg = app.find_image(tst_image_name)
         assert isinstance(file_reg, RegisteredFile)
-        assert file_reg.path == norm_path(im3)
+        assert os_path_relpath(file_reg.path, tst_tmp_path) == im3
 
-        file_reg = app.find_image(image_file_name, height=0.6)
+        file_reg = app.find_image(tst_image_name, height=0.6)
         assert isinstance(file_reg, RegisteredFile)
-        assert file_reg.path == norm_path(im2)
+        assert os_path_relpath(file_reg.path, tst_tmp_path) == im2
 
-        file_reg = app.find_image(image_file_name, height=1.5)
+        file_reg = app.find_image(tst_image_name, height=1.5)
         assert isinstance(file_reg, RegisteredFile)
-        assert file_reg.path == norm_path(im2)
+        assert os_path_relpath(file_reg.path, tst_tmp_path) == im2
 
-        file_reg = app.find_image(image_file_name, height=96.0)
+        file_reg = app.find_image(tst_image_name, height=96.0)
         assert isinstance(file_reg, RegisteredFile)
-        assert file_reg.path == norm_path(im3)
+        assert os_path_relpath(file_reg.path, tst_tmp_path) == im3
 
-        file_reg = app.find_image(image_file_name, light_theme=bool(1))
+        file_reg = app.find_image(tst_image_name, light_theme=bool(1))
         assert isinstance(file_reg, RegisteredFile)
-        assert file_reg.path == norm_path(im3)
+        assert os_path_relpath(file_reg.path, tst_tmp_path) == im3
 
-    def test_find_image_file_with_matcher_and_sorter(self, restore_app_env, image_files_to_test):
-        im1, im2, im3 = image_files_to_test
+    def test_find_image_file_with_matcher_and_sorter(self, restore_app_env, tst_ado_image_files, tst_tmp_path):
+        im1, im2, im3 = tst_ado_image_files
         app = ImplementationOfMainApp()
 
-        file_reg = app.find_image(image_file_name, height=0.6, light_theme=False)
+        file_reg = app.find_image(tst_image_name, height=0.6, light_theme=False)
         assert isinstance(file_reg, RegisteredFile)
-        assert file_reg.path == norm_path(im2)
+        assert os_path_relpath(file_reg.path, tst_tmp_path) == im2
 
-        file_reg = app.find_image(image_file_name, height=1.5, light_theme=False)
+        file_reg = app.find_image(tst_image_name, height=1.5, light_theme=False)
         assert isinstance(file_reg, RegisteredFile)
-        assert file_reg.path == norm_path(im2)
+        assert os_path_relpath(file_reg.path, tst_tmp_path) == im2
 
-        file_reg = app.find_image(image_file_name, height=3.0, light_theme=False)
+        file_reg = app.find_image(tst_image_name, height=3.0, light_theme=False)
         assert isinstance(file_reg, RegisteredFile)
-        assert file_reg.path == norm_path(im3)
+        assert os_path_relpath(file_reg.path, tst_tmp_path) == im3
 
-        file_reg = app.find_image(image_file_name, light_theme=False)
+        file_reg = app.find_image(tst_image_name, light_theme=False)
         assert isinstance(file_reg, RegisteredFile)
-        assert file_reg.path == norm_path(im3)   # default height==32.0
+        assert os_path_relpath(file_reg.path, tst_tmp_path) == im3   # default height==32.0
 
-        file_reg = app.image_files(image_file_name, property_matcher=lambda f: True)
+        file_reg = app.image_files(tst_image_name, property_matcher=lambda f: True)
         assert isinstance(file_reg, RegisteredFile)
-        assert file_reg.path in (norm_path(im1), norm_path(im2), norm_path(im3))
+        assert os_path_relpath(file_reg.path, tst_tmp_path) in (im1, im2, im3)
 
-        file_reg = app.image_files(image_file_name, property_matcher=lambda f: False)
+        file_reg = app.image_files(tst_image_name, property_matcher=lambda f: False)
         assert isinstance(file_reg, RegisteredFile)
-        assert file_reg.path in (norm_path(im1), norm_path(im2), norm_path(im3))
+        assert os_path_relpath(file_reg.path, tst_tmp_path) in (im1, im2, im3)
 
     def test_find_image_file_without_image_name(self, restore_app_env):
         app = ImplementationOfMainApp()
         assert app.find_image('') is None
+
+    def test_find_sound(self, restore_app_env, tst_ado_sound_files, tst_tmp_path):
+        register_package_sounds()
+        app = ImplementationOfMainApp()
+
+        file_reg = app.find_sound(tst_sound_name)
+        assert isinstance(file_reg, RegisteredFile)
+        assert file_reg.path
+        assert os_path_relpath(file_reg.path, tst_tmp_path) == tst_ado_sound_files[0]
 
     def test_find_sound_cov(self, restore_app_env):
         app = ImplementationOfMainApp()
@@ -1267,74 +1334,73 @@ class TestOtherMainAppMethods:
         assert glo['get_text'] == tst_val
         assert glo['new_val'] == tst_val
 
-    def test_img_file(self, restore_app_env, image_files_to_test):
-        im1, im2, im3 = image_files_to_test
+    def test_img_file(self, restore_app_env, tst_ado_image_files, tst_tmp_path):
+        im1, im2, im3 = tst_ado_image_files
         app = ImplementationOfMainApp()
         assert app.img_file('') == ''
-        assert app.img_file(image_file_name)
-        assert app.img_file(image_file_name) in (norm_path(im1), norm_path(im2), norm_path(im3))
+        assert app.img_file(tst_image_name)
+        assert os_path_relpath(app.img_file(tst_image_name), tst_tmp_path) in (im1, im2, im3)
 
     def test_ini_file_cwd_default(self, restore_app_env, tst_app_key):
         app = ImplementationOfMainApp()
         ini_file_path = norm_path(tst_app_key + INI_EXT)
         assert app._main_cfg_fnam == ini_file_path
 
-    def test_ini_file_added_in_tests_subdir(self, restore_app_env, tst_app_key, ini_file):
+    def test_ini_file_added_in_tests_subdir(self, ini_file, tst_app_key):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
         ini_file_path = norm_path(ini_file)
         assert app._main_cfg_fnam == ini_file_path
 
-    def test_ini_file_added_in_tests_subdir_after_get_option(self, restore_app_env, tst_app_key, ini_file):
+    def test_ini_file_added_in_tests_subdir_after_get_option(self, ini_file, tst_app_key):
         app = ImplementationOfMainApp(additional_cfg_files=(ini_file, ))
         ini_file_path = norm_path(ini_file)
         app.get_option('debug_level')
         assert app._main_cfg_fnam == ini_file_path
 
     def test_ini_file_app_doc_path(self, restore_app_env, tst_app_key):
-        os.makedirs(os.path.join(normalize("{doc}"), tst_app_key), exist_ok=True)  # pyTstConsAppKey will not be deleted
-        ini_file_path = norm_path(os.path.join(normalize('{doc}'), tst_app_key, tst_app_key + INI_EXT))
+        doc_path = os_path_join(normalize("{doc}"), tst_app_key)
+        ini_file_path = norm_path(os_path_join(doc_path, tst_app_key + INI_EXT))
         try:
+            os.makedirs(doc_path)
             _create_ini_file(ini_file_path)
             app = ImplementationOfMainApp(app_name=tst_app_key)
             assert app._main_cfg_fnam == ini_file_path
         finally:
-            if os.path.exists(ini_file_path):
-                os.remove(ini_file_path)
+            if os_path_isdir(doc_path):
+                shutil.rmtree(doc_path)
 
-    def test_ini_file_app_doc_path_after_get_option(self, restore_app_env, tst_app_key):
-        os.makedirs(os.path.join(normalize("{doc}"), tst_app_key), exist_ok=True)  # pyTstConsAppKey will not be deleted
-        ini_file_path = norm_path(os.path.join(normalize('{doc}'), tst_app_key, tst_app_key + INI_EXT))
-        try:
-            _create_ini_file(ini_file_path)
-            app = ImplementationOfMainApp(app_name=tst_app_key)
-            app.get_option('debug_level')
-            assert app._main_cfg_fnam == ini_file_path
-        finally:
-            if os.path.exists(ini_file_path):
-                os.remove(ini_file_path)
+    def test_ini_file_app_tmp_path_after_get_option(self, monkeypatch, restore_app_env, tst_app_key, tst_tmp_path):
+        ini_file_path = norm_path(os_path_join(tst_tmp_path, tst_app_key + INI_EXT))
+        _create_ini_file(ini_file_path)
+        monkeypatch.chdir(tst_tmp_path)
+        app = ImplementationOfMainApp(app_name=tst_app_key)
+        app.get_option('debug_level')
+        assert norm_path(app._main_cfg_fnam) == ini_file_path
 
-    def test_load_images(self, restore_app_env):
+    def test_load_images(self, tst_ado_image_files, monkeypatch, restore_app_env, tst_tmp_path):
         app = ImplementationOfMainApp(debug_level=DEBUG_LEVEL_ENABLED)
+
         assert isinstance(app.image_files, FilesRegister)
         assert len(app.image_files) == PORTION_IMG_COUNT + TST_IMG_COUNT
 
-    def test_load_sounds(self, restore_app_env):
+        monkeypatch.chdir(tst_tmp_path)
+        app.load_images()   # test that reload does not increase the number of images files
+
+        assert len(app.image_files) == PORTION_IMG_COUNT + TST_IMG_COUNT
+
+    def test_load_sounds(self, restore_app_env, tmp_path):
         app = ImplementationOfMainApp(debug_level=DEBUG_LEVEL_ENABLED)
         assert isinstance(app.sound_files, FilesRegister)
         assert len(app.sound_files) == PORTION_SND_COUNT
 
-        snd_path = os.path.join(TESTS_FOLDER, 'snd')
+        snd_path = os_path_join(str(tmp_path), 'snd')
         snd_file = 'dummy_sound.file'
-        try:
-            os.mkdir(snd_path)
-            write_file(os.path.join(snd_path, snd_file), "dummy sound")
-            app.sound_files.add_paths(os.path.join(snd_path, '**'))
-            assert isinstance(app.sound_files, FilesRegister)
-            assert app.sound_files
-            assert app.find_sound(os.path.splitext(snd_file)[0])
-        finally:
-            if os.path.exists(snd_path):
-                shutil.rmtree(snd_path)
+        os.mkdir(snd_path)
+        write_file(os_path_join(snd_path, snd_file), "dummy sound")
+        app.sound_files.add_paths(os_path_join(snd_path, '**'))
+        assert isinstance(app.sound_files, FilesRegister)
+        assert app.sound_files
+        assert app.find_sound(os_path_splitext(snd_file)[0])
 
     def test_mix_background_ink(self, restore_app_env):
         app = ImplementationOfMainApp()
@@ -1396,6 +1462,15 @@ class TestOtherMainAppMethods:
 
         popups = app.popups_opened((self.__class__, ))
         assert not popups
+
+    def test_register_user(self, restore_app_env):
+        app = ImplementationOfMainApp()
+        var_name = 'onboarding_tour_started'
+        app.cfg_options[var_name] = Literal(literal_or_value=-96, name=var_name)
+
+        app.register_user()
+
+        assert app.get_variable(var_name) == 0
 
     def test_show_confirmation(self, restore_app_env):
         def _chg_flow(flow_id, popup_kwargs):

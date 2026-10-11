@@ -5,16 +5,16 @@ from collections.abc import Callable
 from typing import Any
 from unittest.mock import MagicMock, patch, call
 
-from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED
 from ae.i18n import LOADED_TRANSLATIONS, default_language
+from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED
 
-from ae.gui.utils import (
-    REGISTERED_TOURS,
-    id_of_flow, id_of_flow_help, id_of_state_help, tour_id_class)
 from ae.gui.app import MainAppBase
 # noinspection PyProtectedMember
 from ae.gui.tours import (
     _OPEN_USER_PREFERENCES_FLOW_ID, OnboardingTour, TourBase, TourDropdownFromButton, TourLayout, UserPreferencesTour)
+from ae.gui.utils import (
+    REGISTERED_TOURS,
+    id_of_flow, id_of_flow_help, id_of_state_help, tour_id_class)
 
 
 class AbstractsImplementation(MainAppBase):
@@ -427,7 +427,7 @@ class TestTourBase:
                 """ call cancel method """
                 # NOT called by this unit test
                 nonlocal cancel_called
-                cancel_called = True            # pragma: no cover
+                cancel_called = True
         app_tour._auto_switch_page_request = _CallRequest()
 
         app_tour._auto_switch_page_request = False
@@ -451,7 +451,7 @@ class TestTourBase:
             def cancel():
                 """ call cancel method """
                 nonlocal cancel_called
-                cancel_called = True            # pragma: no cover
+                cancel_called = True
         app_tour._auto_switch_page_request = _CallRequest()
 
         app_tour.page_idx = 1       # the first check bouncing back to prev on the last page
@@ -914,7 +914,7 @@ class TestTourDropdownFromButton:
 
             def close(self):
                 """ close method """
-                main_app.framework_win.children.remove(self)    # pragma: no cover
+                main_app.framework_win.children.remove(self)
 
         class _Child:
             """ child class """
@@ -974,7 +974,7 @@ class TestTourDropdownFromButton:
 
             def close(self):
                 """ close method """
-                main_app.framework_win.children.remove(self)    # pragma: no cover
+                main_app.framework_win.children.remove(self)
 
         class _Child:
             """ child class """

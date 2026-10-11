@@ -1,4 +1,4 @@
-# THIS FILE IS EXCLUSIVELY MAINTAINED by the project aedev.project_tpls v0.3.102
+# THIS FILE IS EXCLUSIVELY MAINTAINED by the project aedev.project_tpls v0.3.105
 image: python:3.12
  
  
@@ -44,6 +44,7 @@ integrity:                      # run integrity tests
       ae_dynamicod
       ae_i18n
       ae_core
+      ae_literal
       ae_console
   script:
     - pipx run --spec aedev_project_manager project-manager -v check-integrity
